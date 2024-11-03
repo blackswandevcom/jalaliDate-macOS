@@ -1,17 +1,12 @@
-//
-//  JalaliDateAppApp.swift
-//  JalaliDateApp
-//
-//  Created by Amirhp Com on 1403.08.13.
-//
-
 import SwiftUI
 
 @main
-struct JalaliDateAppApp: App {
+struct JalaliDateApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            EmptyView() // No GUI window for this app
         }
     }
 }

@@ -1,0 +1,8 @@
+// first create a folder named setup
+// then add the app file, and Applications Folder Shortcut
+// Then Run first command to make dmg
+// and lastly run second command to make it read-only
+
+hdiutil create -volname "JalaliDateApp" -srcfolder "/Users/amirhpcom/Documents/WorkStuff/_macOS_Apps/JalaliDateApp/setup" -ov -format UDZO "/Users/amirhpcom/Documents/WorkStuff/_macOS_Apps/JalaliDateApp.dmg"
+
+hdiutil convert "/Users/amirhpcom/Documents/WorkStuff/_macOS_Apps/JalaliDateApp.dmg" -format UDZO -o "/Users/amirhpcom/Documents/WorkStuff/_macOS_Apps/JalaliDateApp_Final.dmg"
