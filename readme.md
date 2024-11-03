@@ -3,9 +3,16 @@
 # [Jalali Date Toolbar for macOS](https://github.com/blackswandevcom/jalaliDate-macOS)
 Developed by **[AmirhpCom](https://amirhp.com/)** at [BlackSwanDev.Com](https://blackSwanDev.com)
 
-
 ### 📅 Introduction
 The Jalali Date App is a lightweight macOS menu bar application that displays the current date in the Jalali (Persian) calendar alongside the Gregorian date. Designed to be simple and non-intrusive, it’s the perfect companion for users who need quick access to both Persian and Western calendars directly from their Mac’s menu bar.
+
+
+### 🎉 Version 2.0
+In this release, we’ve made some great enhancements to improve usability and accessibility:
+
+-	**Refreshed Menubar Display**: We’ve tweaked the menubar display to be even more clear and user-friendly, providing you with the information you need at a glance.
+-	**Quick Peek at Month Names**: Added a convenient “Months Table” option, allowing you to view the Gregorian and Jalali month names side-by-side. It’s perfect for quick reference – especially if you’re like us and occasionally need a reminder! 😉
+
 
 ### 🚀 Key Features
 + Displays the current Jalali (Persian) date and Gregorian date in the macOS menu bar.
