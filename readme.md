@@ -67,6 +67,6 @@ This app is developed by **[Amirhp.Com](https://amirhp.com/)**, a software devel
 
 ### 📸 Screenshots
 
-|Dropdown Menu|Copied Alert|About Dialog|
-|---|---|---|
-|<img src="menu.png" style="border-radius: 8px; width: 300px;" />|<img src="copied.png" style="border-radius: 8px; width: 300px;" />|<img src="about.png" style="border-radius: 8px; width: 300px;" />|
+|Dropdown Menu|Dropdown Menu v2|Alert|About Dialog|
+|---|---|---|---|
+|<img src="menu.png" style="border-radius: 8px; width: 300px;" />|<img src="menu-v2.png" style="border-radius: 8px; width: 300px;" />|<img src="copied.png" style="border-radius: 8px; width: 300px;" />|<img src="about.png" style="border-radius: 8px; width: 300px;" />|
