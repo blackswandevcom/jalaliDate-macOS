@@ -9,16 +9,14 @@ func getJalaliDateString() -> String {
     formatter.calendar = persianCalendar
     formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
     formatter.dateFormat = "EEEE d MMMM yyyy"  // Example format for day, date, month, and year
-    
     // let persianDate = formatter.string(from: Date())
     // return persianDate
-    
     // Step 3: Format the date in Persian and convert digits to English
     let persianDateWithPersianNumbers = formatter.string(from: Date())
     let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
-    
     return englishDigitsDate
 }
+
 func getGregorianDateString() -> String {
     let gregorianCalendar = Calendar(identifier: .gregorian)
     let formatter = DateFormatter()
@@ -164,14 +162,14 @@ func generateIcon(with day: Int) -> NSImage {
     let image = NSImage(size: NSSize(width: width, height: height))
     image.lockFocus()
     
+    // let day = Calendar(identifier: .gregorian).component(.second, from: Date())
+    
     // Set colors to adapt based on system appearance using template
     let borderColor: NSColor = isTodayFriday() ? .red : .yellow
     let textColor: NSColor = .black  // Use black; macOS will invert in dark mode
     
     // Draw the rounded rectangle with a centered border
-    let rectPath = NSBezierPath(
-        roundedRect: NSRect(x: 1, y: 1, width: width - 2, height: height - 2), xRadius: 10,
-        yRadius: 10)
+    let rectPath = NSBezierPath(roundedRect: NSRect(x: 1, y: 1, width: width - 2, height: height - 2), xRadius: 10, yRadius: 10)
     borderColor.setStroke()
     rectPath.lineWidth = 1.5
     rectPath.stroke()
@@ -205,6 +203,12 @@ func generateIcon(with day: Int) -> NSImage {
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
     var statusItem: NSStatusItem?
+    var timer: Timer?
+    // var currentDateTimeItem: NSMenuItem?
+    var menuItem1: NSMenuItem?
+    var menuItem2: NSMenuItem?
+    var menuItem3: NSMenuItem?
+    var menuItem4: NSMenuItem?
     
     // Sample data for the table
     let data = [
@@ -237,47 +241,46 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         
         // Set up the menu for the status item
         let menu = NSMenu()
+
         
         // Add Jalali date item (copyable)
-        let jalaliDateItem = NSMenuItem(
-            title: "Jalali Date: \(getCurrentJalaliDate())", action: #selector(copyJalaliDate),
-            keyEquivalent: "c")
-        jalaliDateItem.image = NSImage(
-            systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
+        let jalaliDateItem = NSMenuItem(title: "Jalali Date: \(getCurrentJalaliDate())", action: #selector(copyJalaliDate), keyEquivalent: "c")
+        jalaliDateItem.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(jalaliDateItem)
+        menuItem1 = jalaliDateItem
         
         // Add Jalali month item (disabled)
-        let jalaliMonthItem = NSMenuItem(
-            title: "\(getJalaliDateString())", action: nil, keyEquivalent: "")
-        jalaliMonthItem.image = NSImage(
-            systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
+        let jalaliMonthItem = NSMenuItem(title: "\(getJalaliDateString())", action: nil, keyEquivalent: "")
+        jalaliMonthItem.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
         jalaliMonthItem.isEnabled = false
         menu.addItem(jalaliMonthItem)
+        menuItem2 = jalaliMonthItem
         
         // Add a separator
         menu.addItem(NSMenuItem.separator())
         
         // Add Gregorian date item (copyable)
-        let gregorianDateItem = NSMenuItem(
-            title: "Gregorian Date: \(getCurrentGregorianDate())",
-            action: #selector(copyGregorianDate),
-            keyEquivalent: "x")
-        gregorianDateItem.image = NSImage(
-            systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
+        let gregorianDateItem = NSMenuItem(title: "Gregorian Date: \(getCurrentGregorianDate())", action: #selector(copyGregorianDate), keyEquivalent: "x")
+        gregorianDateItem.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(gregorianDateItem)
+        menuItem3 = gregorianDateItem
         
         // Add Gregorian month item (disabled)
-        let gregorianMonthItem = NSMenuItem(
-            title: "\(getGregorianDateString())", action: nil, keyEquivalent: "")
-        gregorianMonthItem.image = NSImage(
-            systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
+        let gregorianMonthItem = NSMenuItem(title: "\(getGregorianDateString())", action: nil, keyEquivalent: "")
+        gregorianMonthItem.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
         gregorianMonthItem.isEnabled = false
         menu.addItem(gregorianMonthItem)
-        
+        menuItem4 = gregorianMonthItem
         
         // Add a separator
         menu.addItem(NSMenuItem.separator())
         
+//        
+//        let dateTimeItem = NSMenuItem(title: "Current Time: \(getCurrentDateTime())", action: nil, keyEquivalent: "")
+//        dateTimeItem.image = NSImage(systemSymbolName: "clock", accessibilityDescription: "Current Time")  // System icon example
+//        dateTimeItem.isEnabled = false
+//        menu.addItem(dateTimeItem)
+//        currentDateTimeItem = dateTimeItem
         
         // About item with an icon
         let gmItem = NSMenuItem(title: "Months Table", action: #selector(showMonthTableAlert), keyEquivalent: "m")
@@ -309,19 +312,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         // Set the taskbar text to the current Jalali date in Persian format
         updateTaskbarTitle()
         
-        // Update the icon daily
-        Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { _ in
+        // Update the icon every seconds
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             self.updateIcon()
         }
-        // Update the date every minute
-        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
-            self.updateTaskbarTitle()
+        
+        // Set up a timer to update the date and time every second
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateTaskbarTitle()
         }
+        
+        // Keep timer active in different run loop modes
+        RunLoop.main.add(timer!, forMode: .common)
         
         // Activate app on click to prioritize menu display
         statusItem?.button?.target = self
         statusItem?.button?.action = #selector(showMenu)
         
+    }
+    
+    func applicationWillTerminate(_ aNotification: Notification) {
+        // Invalidate the timer when the app is terminated
+        timer?.invalidate()
     }
     
     // Update the icon to show the current Jalali day
@@ -331,9 +343,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
     }
     
     // Update the taskbar title to show the current day’s Jalali date in Persian
-    func updateTaskbarTitle() {
+    @objc func updateTaskbarTitle() {
         // let jalaliDate = getCurrentJalaliDate()
         statusItem?.button?.title = ""
+        // Safely unwrap currentDateTimeItem to update its title
+        // if let item = currentDateTimeItem {item.title = "Current Time: \(getCurrentDateTime())"}
+        if let item = menuItem1 {item.title = "Jalali Date: \(getCurrentJalaliDate())"}
+        if let item = menuItem2 {item.title = "\(getJalaliDateString())"}
+        if let item = menuItem3 {item.title = "Gregorian Date: \(getCurrentGregorianDate())"}
+        if let item = menuItem4 {item.title = "\(getGregorianDateString())"}
+        
+    }
+    
+    func getCurrentDateTime() -> String {
+        let persianCalendar = Calendar(identifier: .persian)
+        let formatter = DateFormatter()
+        formatter.calendar = persianCalendar
+        formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
+        formatter.dateFormat = "HH:mm:ss"  // Correct format for hours, minutes, and seconds
+        
+        let persianDateWithPersianNumbers = formatter.string(from: Date())
+        let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
+        return englishDigitsDate
     }
     
     // Show the menu and prioritize its display
@@ -404,7 +435,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
     // MARK: - NSTableViewDelegate
     
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-//        let cellIdentifier = tableColumn?.identifier ?? NSUserInterfaceItemIdentifier("")
+        // let cellIdentifier = tableColumn?.identifier ?? NSUserInterfaceItemIdentifier("")
         
         // Create a text field for each cell
         let cell = NSTextField(labelWithString: "")
