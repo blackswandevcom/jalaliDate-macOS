@@ -451,25 +451,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
     }
 
     // Show an "About" dialog
-    @objc func showAbout_old() {
-        let alert = NSAlert()
-        alert.messageText = "About JalaliDate-Toolbar"
-        alert.informativeText =
-        "Version 3.0 | 2024-11-23 | 1403-09-03\n\nThis app displays the current Jalali and Gregorian dates in the menu bar.\n\nDeveloped by <a href='https://amirhp.com/'>Amirhp.Com</a>"
-        alert.alertStyle = .informational
-        // Ensure it opens as the front window and stays on top
-        NSApp.activate(ignoringOtherApps: true) // Bring app to front
-        alert.window.level = .floating  // Set alert as a floating window
-        alert.addButton(withTitle: "Thanks!")
-        alert.runModal()
-    }
-
-
     @objc func showAbout() {
         let alert = NSAlert()
         alert.messageText = "About JalaliDate-Toolbar"
         alert.informativeText = """
-        Version 3.0 | 2024-11-23 | 1403-09-03
+        Version 3.1 | 2024-11-24 | 1403-09-04
 
         JalaliDate-Toolbar shows Jalali and Gregorian dates in your menu bar, with shortcuts for quick copying. Simple, lightweight, and efficient.
         """
