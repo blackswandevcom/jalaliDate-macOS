@@ -455,7 +455,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let alert = NSAlert()
         alert.messageText = "About JalaliDate-Toolbar"
         alert.informativeText = """
-        Version 3.1 | 2024-11-24 | 1403-09-04
+        Version 4.0 | 2024-11-24 | 1403-09-04
 
         JalaliDate-Toolbar shows Jalali and Gregorian dates in your menu bar, with shortcuts for quick copying. Simple, lightweight, and efficient.
         """
