@@ -9,14 +9,16 @@ func getJalaliDateString() -> String {
     formatter.calendar = persianCalendar
     formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
     formatter.dateFormat = "EEEE d MMMM yyyy"  // Example format for day, date, month, and year
+    
     // let persianDate = formatter.string(from: Date())
     // return persianDate
+    
     // Step 3: Format the date in Persian and convert digits to English
     let persianDateWithPersianNumbers = formatter.string(from: Date())
     let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
+    
     return englishDigitsDate
 }
-
 func getGregorianDateString() -> String {
     let gregorianCalendar = Calendar(identifier: .gregorian)
     let formatter = DateFormatter()
@@ -131,21 +133,6 @@ func getCurrentGregorianWeekday() -> String {
     return formatter.string(from: currentDate)
 }
 
-// Function to display a notification using UserNotifications
-func showCopyNotification(message: String) {
-    let content = UNMutableNotificationContent()
-    content.title = "Copied!"
-    content.body = message
-    content.sound = .default
-    
-    let request = UNNotificationRequest(
-        identifier: UUID().uuidString, content: content, trigger: nil)
-    UNUserNotificationCenter.current().add(request) { error in
-        if let error = error {
-            print("Notification error: \(error)")
-        }
-    }
-}
 
 // Helper function to check if today is Friday
 func isTodayFriday() -> Bool {
@@ -156,20 +143,20 @@ func isTodayFriday() -> Bool {
 }
 
 // Generate a rounded rectangular icon with a visible border and centered day text
-func generateIcon(with day: Int) -> NSImage {
+func generateIcon(with day: String) -> NSImage {
     let width: CGFloat = 20  // Icon width
     let height: CGFloat = 20  // Icon height
     let image = NSImage(size: NSSize(width: width, height: height))
     image.lockFocus()
-    
-    // let day = Calendar(identifier: .gregorian).component(.second, from: Date())
     
     // Set colors to adapt based on system appearance using template
     let borderColor: NSColor = isTodayFriday() ? .red : .yellow
     let textColor: NSColor = .black  // Use black; macOS will invert in dark mode
     
     // Draw the rounded rectangle with a centered border
-    let rectPath = NSBezierPath(roundedRect: NSRect(x: 1, y: 1, width: width - 2, height: height - 2), xRadius: 10, yRadius: 10)
+    let rectPath = NSBezierPath(
+        roundedRect: NSRect(x: 1, y: 1, width: width - 2, height: height - 2), xRadius: 10,
+        yRadius: 10)
     borderColor.setStroke()
     rectPath.lineWidth = 1.5
     rectPath.stroke()
@@ -203,12 +190,6 @@ func generateIcon(with day: Int) -> NSImage {
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
     var statusItem: NSStatusItem?
-    var timer: Timer?
-    // var currentDateTimeItem: NSMenuItem?
-    var menuItem1: NSMenuItem?
-    var menuItem2: NSMenuItem?
-    var menuItem3: NSMenuItem?
-    var menuItem4: NSMenuItem?
     
     // Sample data for the table
     let data = [
@@ -241,20 +222,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         
         // Set up the menu for the status item
         let menu = NSMenu()
-
         
         // Add Jalali date item (copyable)
         let jalaliDateItem = NSMenuItem(title: "Jalali Date: \(getCurrentJalaliDate())", action: #selector(copyJalaliDate), keyEquivalent: "c")
         jalaliDateItem.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(jalaliDateItem)
-        menuItem1 = jalaliDateItem
         
         // Add Jalali month item (disabled)
         let jalaliMonthItem = NSMenuItem(title: "\(getJalaliDateString())", action: nil, keyEquivalent: "")
         jalaliMonthItem.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
         jalaliMonthItem.isEnabled = false
         menu.addItem(jalaliMonthItem)
-        menuItem2 = jalaliMonthItem
         
         // Add a separator
         menu.addItem(NSMenuItem.separator())
@@ -263,27 +241,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let gregorianDateItem = NSMenuItem(title: "Gregorian Date: \(getCurrentGregorianDate())", action: #selector(copyGregorianDate), keyEquivalent: "x")
         gregorianDateItem.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(gregorianDateItem)
-        menuItem3 = gregorianDateItem
         
         // Add Gregorian month item (disabled)
         let gregorianMonthItem = NSMenuItem(title: "\(getGregorianDateString())", action: nil, keyEquivalent: "")
         gregorianMonthItem.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
         gregorianMonthItem.isEnabled = false
         menu.addItem(gregorianMonthItem)
-        menuItem4 = gregorianMonthItem
+        
         
         // Add a separator
         menu.addItem(NSMenuItem.separator())
         
-//        
-//        let dateTimeItem = NSMenuItem(title: "Current Time: \(getCurrentDateTime())", action: nil, keyEquivalent: "")
-//        dateTimeItem.image = NSImage(systemSymbolName: "clock", accessibilityDescription: "Current Time")  // System icon example
-//        dateTimeItem.isEnabled = false
-//        menu.addItem(dateTimeItem)
-//        currentDateTimeItem = dateTimeItem
+
+        
+        // Add Jalali date item (copyable
+        let gePersian = NSMenuItem(title: "Copy Version Number", action: #selector(copyVersionDate), keyEquivalent: "d")
+        gePersian.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
+        menu.addItem(gePersian)
+        
+        // Add Jalali month item (disabled)
+        let gePersianMuted = NSMenuItem(title: "\(getCurrentGregorianDate()) | \(getCurrentJalaliDate())", action: nil, keyEquivalent: "")
+        gePersianMuted.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
+        gePersianMuted.isEnabled = false
+        menu.addItem(gePersianMuted)
+
+        
+        // Add a separator
+        menu.addItem(NSMenuItem.separator())
+        
         
         // About item with an icon
-        let gmItem = NSMenuItem(title: "Months Table", action: #selector(showMonthTableAlert), keyEquivalent: "m")
+        let gmItem = NSMenuItem(title: "Months Table", action: #selector(showMonthTableAlert), keyEquivalent: "")
         gmItem.image = NSImage(systemSymbolName: "tablecells.fill", accessibilityDescription: "Months Table Icon")  // System icon example
         menu.addItem(gmItem)
         
@@ -292,18 +280,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         menu.addItem(NSMenuItem.separator())
         
         // About item with an icon
-        let aboutItem = NSMenuItem(title: "About", action: #selector(showAbout), keyEquivalent: "a")
+        let aboutItem = NSMenuItem(title: "About", action: #selector(showAbout), keyEquivalent: "")
         aboutItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "About Icon")  // System icon example
         menu.addItem(aboutItem)
         
         // Site item with an icon
-        let siteItem = NSMenuItem(title: "Site", action: #selector(openSite), keyEquivalent: "s")
+        let siteItem = NSMenuItem(title: "Site", action: #selector(openSite), keyEquivalent: "")
         siteItem.image = NSImage(systemSymbolName: "link", accessibilityDescription: "Site Icon")  // System icon example
         menu.addItem(siteItem)
         
         // Quit item with an icon
-        let quitItem = NSMenuItem(
-            title: "Quit", action: #selector(NSApp.terminate), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApp.terminate), keyEquivalent: "")
         quitItem.image = NSImage(systemSymbolName: "power", accessibilityDescription: "Quit Icon")  // System icon example
         menu.addItem(quitItem)
         
@@ -312,18 +299,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         // Set the taskbar text to the current Jalali date in Persian format
         updateTaskbarTitle()
         
-        // Update the icon every seconds
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        // Update the icon daily
+        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
             self.updateIcon()
         }
-        
-        // Set up a timer to update the date and time every second
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.updateTaskbarTitle()
+        // Update the date every minute
+        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+            self.updateTaskbarTitle()
         }
-        
-        // Keep timer active in different run loop modes
-        RunLoop.main.add(timer!, forMode: .common)
         
         // Activate app on click to prioritize menu display
         statusItem?.button?.target = self
@@ -331,40 +314,39 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         
     }
     
-    func applicationWillTerminate(_ aNotification: Notification) {
-        // Invalidate the timer when the app is terminated
-        timer?.invalidate()
-    }
-    
     // Update the icon to show the current Jalali day
     func updateIcon() {
         let day = getCurrentJalaliDay()
-        statusItem?.button?.image = generateIcon(with: day)
+        statusItem?.button?.image = generateIcon(with: "\(day)")
     }
     
     // Update the taskbar title to show the current day’s Jalali date in Persian
-    @objc func updateTaskbarTitle() {
+    func updateTaskbarTitle() {
         // let jalaliDate = getCurrentJalaliDate()
         statusItem?.button?.title = ""
-        // Safely unwrap currentDateTimeItem to update its title
-        // if let item = currentDateTimeItem {item.title = "Current Time: \(getCurrentDateTime())"}
-        if let item = menuItem1 {item.title = "Jalali Date: \(getCurrentJalaliDate())"}
-        if let item = menuItem2 {item.title = "\(getJalaliDateString())"}
-        if let item = menuItem3 {item.title = "Gregorian Date: \(getCurrentGregorianDate())"}
-        if let item = menuItem4 {item.title = "\(getGregorianDateString())"}
-        
     }
     
-    func getCurrentDateTime() -> String {
-        let persianCalendar = Calendar(identifier: .persian)
-        let formatter = DateFormatter()
-        formatter.calendar = persianCalendar
-        formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
-        formatter.dateFormat = "HH:mm:ss"  // Correct format for hours, minutes, and seconds
+    // Function to display a notification using UserNotifications
+    func showCopyNotification(message: String) {
+        // statusItem?.button?.title = "Copied !";
+        statusItem?.button?.image = generateIcon(with: "✓")
+        // Update the date every minute
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { _ in
+            self.updateIcon()
+        }
         
-        let persianDateWithPersianNumbers = formatter.string(from: Date())
-        let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
-        return englishDigitsDate
+    //    let content = UNMutableNotificationContent()
+    //    content.title = "Copied!"
+    //    content.body = message
+    //    content.sound = .default
+    //
+    //    let request = UNNotificationRequest(
+    //        identifier: UUID().uuidString, content: content, trigger: nil)
+    //    UNUserNotificationCenter.current().add(request) { error in
+    //        if let error = error {
+    //            print("Notification error: \(error)")
+    //        }
+    //    }
     }
     
     // Show the menu and prioritize its display
@@ -380,6 +362,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         pasteboard.setString(getCurrentJalaliDate(), forType: .string)
         showCopyNotification(message: "Jalali Date Copied: \(getCurrentJalaliDate())")
     }
+    
+    
+    @objc func copyVersionDate() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString("\(getCurrentGregorianDate()) | \(getCurrentJalaliDate())", forType: .string)
+        showCopyNotification(message: "Version Date copied Sucessfully")
+    }
+    
     
     
     @objc func showMonthTableAlert() {
@@ -463,15 +454,40 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
     @objc func showAbout() {
         let alert = NSAlert()
         alert.messageText = "About JalaliDate-Toolbar"
-        alert.informativeText =
-        "This app displays the current Jalali and Gregorian dates in the menu bar.\n\nDeveloped by Amirhp.Com"
+        alert.informativeText = """
+        Version 4.0 | 2024-11-24 | 1403-09-04
+
+        JalaliDate-Toolbar shows Jalali and Gregorian dates in your menu bar, with shortcuts for quick copying. Simple, lightweight, and efficient.
+        """
         alert.alertStyle = .informational
-        // Ensure it opens as the front window and stays on top
-        NSApp.activate(ignoringOtherApps: true) // Bring app to front
-        alert.window.level = .floating  // Set alert as a floating window
-        alert.addButton(withTitle: "Thanks!")
-        alert.runModal()
+        
+        // Add a button for "Thanks!"
+        alert.addButton(withTitle: "Close")
+        
+        // Add a second button for "Visit Website"
+        alert.addButton(withTitle: "Visit Amirhp.Com")
+        
+        // Ensure the alert opens as the front window
+        NSApp.activate(ignoringOtherApps: true) // Bring app to the front
+        alert.window.level = .floating // Set alert as a floating window
+
+        // Handle button response
+        let response = alert.runModal()
+        if response == .alertSecondButtonReturn {
+            // Open the URL when the "Visit Amirhp.Com" button is clicked
+            if let url = URL(string: "https://amirhp.com") {
+                NSWorkspace.shared.open(url)
+            }
+        }
     }
+
+    // Function to handle the hyperlink click
+    @objc func openLink(_ sender: NSTextField) {
+        if let link = sender.attributedStringValue.attribute(.link, at: 0, effectiveRange: nil) as? URL {
+            NSWorkspace.shared.open(link)
+        }
+    }
+    
     
     // Open the website
     @objc func openSite() {
