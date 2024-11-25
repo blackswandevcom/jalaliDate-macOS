@@ -282,6 +282,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         menu.addItem(gmItem)
         
         
+        // Date Converter item with an icon
+        let dateConverter = NSMenuItem(title: "Date Convert", action: #selector(showAbout), keyEquivalent: "")
+        dateConverter.image = NSImage(systemSymbolName: "rectangle.landscape.rotate", accessibilityDescription: "Date Converter Icon")  // System icon example
+        dateConverter.isEnabled = true
+        menu.addItem(dateConverter)
+        
         // Add a separator
         menu.addItem(NSMenuItem.separator())
         
@@ -321,6 +327,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
 
     }
 
+ 
+    
+    
     
     
     // Update the icon to show the current Jalali day
@@ -470,7 +479,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let alert = NSAlert()
         alert.messageText = "About JalaliDate-Toolbar"
         alert.informativeText = """
-        Version 4.0 | 2024-11-24 | 1403-09-04
+        Version 4.1 | 2024-11-26 | 1403-09-06
 
         JalaliDate-Toolbar shows Jalali and Gregorian dates in your menu bar, with shortcuts for quick copying. Simple, lightweight, and efficient.
         """
