@@ -8,7 +8,7 @@ func getJalaliDateString() -> String {
     let formatter = DateFormatter()
     formatter.calendar = persianCalendar
     formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
-    formatter.dateFormat = "EEEE d MMMM yyyy"  // Example format for day, date, month, and year
+    formatter.dateFormat = "EEEE d MMMM"  // Example format for day, date, month, and year
     
     // let persianDate = formatter.string(from: Date())
     // return persianDate
@@ -19,12 +19,27 @@ func getJalaliDateString() -> String {
     
     return englishDigitsDate
 }
+
+func getArabicDateString() -> String {
+    let persianCalendar = Calendar(identifier: .islamic)
+    let formatter = DateFormatter()
+    formatter.calendar = persianCalendar
+    formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
+    formatter.dateFormat = "EEEE d MMMM"  // Example format for day, date, month, and year
+    // Step 3: Format the date in Persian and convert digits to English
+    let persianDateWithPersianNumbers = formatter.string(from: Date())
+    let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
+    return englishDigitsDate
+}
+
+
+
 func getGregorianDateString() -> String {
     let gregorianCalendar = Calendar(identifier: .gregorian)
     let formatter = DateFormatter()
     formatter.calendar = gregorianCalendar
     formatter.locale = Locale(identifier: "en_US")  // Persian locale for day and month names in Persian
-    formatter.dateFormat = "EEEE d MMMM yyyy"  // Format to match the Jalali example
+    formatter.dateFormat = "EEEE d MMMM"  // Format to match the Jalali example
     
     let gregorianDate = formatter.string(from: Date())
     return gregorianDate
@@ -64,6 +79,36 @@ func getCurrentJalaliDate() -> String {
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.string(from: currentDate)
 }
+func getCurrentArabicDate() -> String {
+    let currentDate = Date()
+    let calendar = Calendar(identifier: .islamic)
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: currentDate)
+}
+
+
+// Function to get the current Jalali date in YYYY-mm-dd format
+func getCurrentJalaliDate2() -> String {
+    let currentDate = Date()
+    let calendar = Calendar(identifier: .persian)
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.dateFormat = "dd-MM-yyyy"
+    return formatter.string(from: currentDate)
+}
+
+// Function to get the current Jalali date in YYYY-mm-dd format
+func getCurrentArabicDate2() -> String {
+    let currentDate = Date()
+    let calendar = Calendar(identifier: .islamic)
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.dateFormat = "dd-MM-yyyy"
+    return formatter.string(from: currentDate)
+}
+
 
 // Function to get the current Jalali day as an integer (for the icon)
 func getCurrentJalaliDay() -> Int {
@@ -191,11 +236,9 @@ func generateIcon(with day: String) -> NSImage {
 class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
     var statusItem: NSStatusItem?
     var jalaliDateItem: NSMenuItem?
-    var jalaliMonthItem: NSMenuItem?
+    var arabicDateItem: NSMenuItem?
     var gregorianDateItem: NSMenuItem?
-    var gregorianMonthItem: NSMenuItem?
     var gePersian: NSMenuItem?
-    var gePersianMuted: NSMenuItem?
     
     // Sample data for the table
     let data = [
@@ -230,46 +273,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let menu = NSMenu()
         
         // Add Jalali date item (copyable)
-        jalaliDateItem = NSMenuItem(title: "Jalali Date: \(getCurrentJalaliDate())", action: #selector(copyJalaliDate), keyEquivalent: "c")
-        jalaliDateItem!.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
+        jalaliDateItem = NSMenuItem(title: "loading ...", action: #selector(copyJalaliDate), keyEquivalent: "c")
+        jalaliDateItem!.image = NSImage(systemSymbolName: "j.circle.fill", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(jalaliDateItem!)
         
-        
-        // Add Jalali month item (disabled)
-        jalaliMonthItem = NSMenuItem(title: "\(getJalaliDateString())", action: nil, keyEquivalent: "")
-        jalaliMonthItem!.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
-        jalaliMonthItem!.isEnabled = false
-        menu.addItem(jalaliMonthItem!)
-        
-        // Add a separator
-        menu.addItem(NSMenuItem.separator())
-        
         // Add Gregorian date item (copyable)
-        gregorianDateItem = NSMenuItem(title: "Gregorian Date: \(getCurrentGregorianDate())", action: #selector(copyGregorianDate), keyEquivalent: "x")
-        gregorianDateItem!.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
+        gregorianDateItem = NSMenuItem(title: "loading ...", action: #selector(copyGregorianDate), keyEquivalent: "x")
+        gregorianDateItem!.image = NSImage(systemSymbolName: "g.circle.fill", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(gregorianDateItem!)
         
-        // Add Gregorian month item (disabled)
-        gregorianMonthItem = NSMenuItem(title: "\(getGregorianDateString())", action: nil, keyEquivalent: "")
-        gregorianMonthItem!.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
-        gregorianMonthItem!.isEnabled = false
-        menu.addItem(gregorianMonthItem!)
-        
-        
-        // Add a separator
-        menu.addItem(NSMenuItem.separator())
-        
+        // Add Jalali date item (copyable)
+        arabicDateItem = NSMenuItem(title: "loading ...", action: #selector(copyArabicDate), keyEquivalent: "a")
+        arabicDateItem!.image = NSImage(systemSymbolName: "a.circle.fill", accessibilityDescription: "Jalali Date")  // System icon example
+        menu.addItem(arabicDateItem!)
         
         // Add Jalali date item (copyable
-        gePersian = NSMenuItem(title: "Copy Version-Date", action: #selector(copyVersionDate), keyEquivalent: "d")
-        gePersian!.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Jalali Date")  // System icon example
+        gePersian = NSMenuItem(title: "loading ...", action: #selector(copyVersionDate), keyEquivalent: "d")
+        gePersian!.image = NSImage(systemSymbolName: "calendar.circle.fill", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(gePersian!)
         
-        // Add Jalali month item (disabled)
-        gePersianMuted = NSMenuItem(title: "\(getCurrentGregorianDate()) | \(getCurrentJalaliDate())", action: nil, keyEquivalent: "")
-        gePersianMuted!.image = NSImage(systemSymbolName: "moon", accessibilityDescription: "Jalali Month Icon")  // System icon example
-        gePersianMuted!.isEnabled = false
-        menu.addItem(gePersianMuted!)
 
         
         // Add a separator
@@ -278,7 +300,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         
         // About item with an icon
         let gmItem = NSMenuItem(title: "Months Table", action: #selector(showMonthTableAlert), keyEquivalent: "")
-        gmItem.image = NSImage(systemSymbolName: "tablecells.fill", accessibilityDescription: "Months Table Icon")  // System icon example
+        gmItem.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Months Table Icon")  // System icon example
         menu.addItem(gmItem)
         
         
@@ -310,6 +332,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         
         // Set the taskbar text to the current Jalali date in Persian format
         updateTaskbarTitle()
+        updateIcon()
         
         // Update the icon daily
         Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
@@ -328,20 +351,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
     }
 
  
-    
-    
-    
-    
     // Update the icon to show the current Jalali day
     func updateIcon() {
         let day = getCurrentJalaliDay()
         // let sec = Calendar(identifier: .persian).component(.second, from: Date())
         statusItem?.button?.image = generateIcon(with: "\(day)");
-        jalaliDateItem?.title = "Jalali Date: \(getCurrentJalaliDate())";
-        jalaliMonthItem?.title = "\(getJalaliDateString())";
-        gregorianDateItem?.title = "Gregorian Date: \(getCurrentGregorianDate())";
-        gregorianMonthItem?.title = "\(getGregorianDateString())";
-        gePersianMuted?.title = "\(getCurrentGregorianDate()) | \(getCurrentJalaliDate())";
+        jalaliDateItem?.title = "\(getJalaliDateString()) | \(getCurrentJalaliDate2())";
+        arabicDateItem?.title = "\(getArabicDateString()) | \(getCurrentArabicDate2())";
+        gregorianDateItem?.title = "\(getCurrentGregorianDate()) | \(getGregorianDateString())";
+        gePersian?.title = "Copy two dates";
+        
     }
     
     // Update the taskbar title to show the current day’s Jalali date in Persian
@@ -387,7 +406,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         showCopyNotification(message: "Jalali Date Copied: \(getCurrentJalaliDate())")
     }
     
-    
     @objc func copyVersionDate() {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -395,7 +413,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         showCopyNotification(message: "Version Date copied Sucessfully")
     }
     
-    
+    @objc func copyArabicDate() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString("\(getCurrentArabicDate())", forType: .string)
+        showCopyNotification(message: "Jalali Date Copied: \(getCurrentArabicDate())")
+    }
     
     @objc func showMonthTableAlert() {
         let alert = NSAlert()
@@ -479,7 +502,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let alert = NSAlert()
         alert.messageText = "About JalaliDate-Toolbar"
         alert.informativeText = """
-        Version 4.1 | 2024-11-26 | 1403-09-06
+        Version 5.0 | 2025-03-23 | 1404-01-03
 
         JalaliDate-Toolbar shows Jalali and Gregorian dates in your menu bar, with shortcuts for quick copying. Simple, lightweight, and efficient.
         """
@@ -511,7 +534,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
             NSWorkspace.shared.open(link)
         }
     }
-    
     
     // Open the website
     @objc func openSite() {
