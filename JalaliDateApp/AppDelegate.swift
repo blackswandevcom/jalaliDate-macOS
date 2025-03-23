@@ -3,36 +3,26 @@ import SwiftUI
 import UserNotifications
 import Foundation
 
+var islamicDateOffset: Int {
+    get {
+        UserDefaults.standard.integer(forKey: "IslamicDateOffset")
+    }
+    set {
+        UserDefaults.standard.set(newValue, forKey: "IslamicDateOffset")
+    }
+}
+
 func getJalaliDateString() -> String {
     let persianCalendar = Calendar(identifier: .persian)
     let formatter = DateFormatter()
     formatter.calendar = persianCalendar
     formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
     formatter.dateFormat = "EEEE d MMMM"  // Example format for day, date, month, and year
-    
-    // let persianDate = formatter.string(from: Date())
-    // return persianDate
-    
-    // Step 3: Format the date in Persian and convert digits to English
     let persianDateWithPersianNumbers = formatter.string(from: Date())
     let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
     
     return englishDigitsDate
 }
-
-func getArabicDateString() -> String {
-    let persianCalendar = Calendar(identifier: .islamic)
-    let formatter = DateFormatter()
-    formatter.calendar = persianCalendar
-    formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
-    formatter.dateFormat = "EEEE d MMMM"  // Example format for day, date, month, and year
-    // Step 3: Format the date in Persian and convert digits to English
-    let persianDateWithPersianNumbers = formatter.string(from: Date())
-    let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
-    return englishDigitsDate
-}
-
-
 
 func getGregorianDateString() -> String {
     let gregorianCalendar = Calendar(identifier: .gregorian)
@@ -79,13 +69,39 @@ func getCurrentJalaliDate() -> String {
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.string(from: currentDate)
 }
+
+
 func getCurrentArabicDate() -> String {
-    let currentDate = Date()
+    let adjustedDate = Calendar.current.date(byAdding: .day, value: islamicDateOffset, to: Date()) ?? Date()
     let calendar = Calendar(identifier: .islamic)
     let formatter = DateFormatter()
     formatter.calendar = calendar
     formatter.dateFormat = "yyyy-MM-dd"
-    return formatter.string(from: currentDate)
+    return formatter.string(from: adjustedDate)
+}
+func getCurrentArabicDate2() -> String {
+    let adjustedDate = Calendar.current.date(byAdding: .day, value: islamicDateOffset, to: Date()) ?? Date()
+    let calendar = Calendar(identifier: .islamic)
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.dateFormat = "dd-MM-yyyy"
+    return formatter.string(from: adjustedDate)
+}
+func getArabicDateString() -> String {
+    let persianCalendar = Calendar(identifier: .islamic)
+    let formatter = DateFormatter()
+    formatter.calendar = persianCalendar
+    formatter.locale = Locale(identifier: "fa_IR")
+    formatter.dateFormat = "d MMMM"
+    let adjustedDate = Calendar.current.date(byAdding: .day, value: islamicDateOffset, to: Date()) ?? Date()
+    let persianDateWithPersianNumbers = formatter.string(from: adjustedDate)
+    let englishDigitsDate = convertPersianNumbersToEnglish(persianDateWithPersianNumbers)
+    let persianCalendar2 = Calendar(identifier: .persian)
+    formatter.calendar = persianCalendar2
+    formatter.locale = Locale(identifier: "fa_IR")  // Persian locale for correct formatting
+    formatter.dateFormat = "EEEE"  // Example format for day, date, month, and year
+    let weekday = formatter.string(from: Date())
+    return "\(weekday) \(englishDigitsDate)"
 }
 
 
@@ -93,16 +109,6 @@ func getCurrentArabicDate() -> String {
 func getCurrentJalaliDate2() -> String {
     let currentDate = Date()
     let calendar = Calendar(identifier: .persian)
-    let formatter = DateFormatter()
-    formatter.calendar = calendar
-    formatter.dateFormat = "dd-MM-yyyy"
-    return formatter.string(from: currentDate)
-}
-
-// Function to get the current Jalali date in YYYY-mm-dd format
-func getCurrentArabicDate2() -> String {
-    let currentDate = Date()
-    let calendar = Calendar(identifier: .islamic)
     let formatter = DateFormatter()
     formatter.calendar = calendar
     formatter.dateFormat = "dd-MM-yyyy"
@@ -234,6 +240,14 @@ func generateIcon(with day: String) -> NSImage {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
+    var islamicDateOffset: Int {
+        get {
+            UserDefaults.standard.integer(forKey: "IslamicDateOffset")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "IslamicDateOffset")
+        }
+    }
     var statusItem: NSStatusItem?
     var jalaliDateItem: NSMenuItem?
     var arabicDateItem: NSMenuItem?
@@ -242,19 +256,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
     
     // Sample data for the table
     let data = [
-        ["1", "January", "فروردین", "۱"],
-        ["2", "February", "اردیبهشت", "۲"],
-        ["3", "March", "خرداد", "۳"],
-        ["4", "April", "تیر", "۴"],
-        ["5", "May", "مرداد", "۵"],
-        ["6", "June", "شهریور", "۶"],
-        ["7", "July", "مهر", "۷"],
-        ["8", "August", "آبان", "۸"],
-        ["9", "September", "آذر", "۹"],
-        ["10", "October", "دی", "۱۰"],
-        ["11", "November", "بهمن", "۱۱"],
-        ["12", "December", "اسفند", "۱۲"],
-    ]
+        ["1", "January", "محرم", "فروردین", "۱"],
+        ["2", "February", "صفر", "اردیبهشت", "۲"],
+        ["3", "March", "ربیع‌الاول", "خرداد", "۳"],
+        ["4", "April", "ربیع‌الثانی", "تیر", "۴"],
+        ["5", "May", "جمادی‌الاول", "مرداد", "۵"],
+        ["6", "June", "جمادی‌الثانی", "شهریور", "۶"],
+        ["7", "July", "رجب", "مهر", "۷"],
+        ["8", "August", "شعبان", "آبان", "۸"],
+        ["9", "September", "رمضان", "آذر", "۹"],
+        ["10", "October", "شوال", "دی", "۱۰"],
+        ["11", "November", "ذی‌القعده", "بهمن", "۱۱"],
+        ["12", "December", "ذی‌الحجه", "اسفند", "۱۲"]
+      ]
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide the Dock icon programmatically
@@ -287,11 +301,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         arabicDateItem!.image = NSImage(systemSymbolName: "a.circle.fill", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(arabicDateItem!)
         
+        menu.addItem(NSMenuItem.separator())
+        
         // Add Jalali date item (copyable
         gePersian = NSMenuItem(title: "loading ...", action: #selector(copyVersionDate), keyEquivalent: "d")
         gePersian!.image = NSImage(systemSymbolName: "calendar.circle.fill", accessibilityDescription: "Jalali Date")  // System icon example
         menu.addItem(gePersian!)
-        
 
         
         // Add a separator
@@ -305,23 +320,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         
         
         // Date Converter item with an icon
-        let dateConverter = NSMenuItem(title: "Date Convert", action: #selector(showAbout), keyEquivalent: "")
+        let dateConverter = NSMenuItem(title: "Date Convert", action: #selector(showDateConvert), keyEquivalent: "")
         dateConverter.image = NSImage(systemSymbolName: "rectangle.landscape.rotate", accessibilityDescription: "Date Converter Icon")  // System icon example
         dateConverter.isEnabled = true
         menu.addItem(dateConverter)
         
+
         // Add a separator
         menu.addItem(NSMenuItem.separator())
         
         // About item with an icon
-        let aboutItem = NSMenuItem(title: "About", action: #selector(showAbout), keyEquivalent: "")
+        let aboutItem = NSMenuItem(title: "About Jalali Date v5", action: #selector(showAbout), keyEquivalent: "")
         aboutItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "About Icon")  // System icon example
         menu.addItem(aboutItem)
         
         // Site item with an icon
-        let siteItem = NSMenuItem(title: "Site", action: #selector(openSite), keyEquivalent: "")
+        let siteItem = NSMenuItem(title: "BlackSwanDev.com", action: #selector(openSite), keyEquivalent: "")
         siteItem.image = NSImage(systemSymbolName: "link", accessibilityDescription: "Site Icon")  // System icon example
         menu.addItem(siteItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        
+        let offsetSettingsItem = NSMenuItem(title: "Setting", action: #selector(showIslamicOffsetSettings), keyEquivalent: "")
+        offsetSettingsItem.image = NSImage(systemSymbolName: "gear", accessibilityDescription: "setting Icon")
+        menu.addItem(offsetSettingsItem)
+        
         
         // Quit item with an icon
         let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApp.terminate), keyEquivalent: "")
@@ -359,8 +383,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         jalaliDateItem?.title = "\(getJalaliDateString()) | \(getCurrentJalaliDate2())";
         arabicDateItem?.title = "\(getArabicDateString()) | \(getCurrentArabicDate2())";
         gregorianDateItem?.title = "\(getCurrentGregorianDate()) | \(getGregorianDateString())";
-        gePersian?.title = "Copy two dates";
+        gePersian?.title = "Copy version dates";
+    }
+    
+    @objc func showIslamicOffsetSettings() {
+        let alert = NSAlert()
+        alert.messageText = "Islamic Date Offset"
+        alert.informativeText = "In order to Adjust Islamic (Arabic / Hijri) Date Offset, choose a value between -4 to +4 day, and Save"
         
+        let dropdown = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        for offset in -4...4 {
+            dropdown.addItem(withTitle: "\(offset)")
+        }
+        dropdown.selectItem(withTitle: "\(islamicDateOffset)")
+        alert.accessoryView = dropdown
+        
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let selectedTitle = dropdown.selectedItem?.title, let newOffset = Int(selectedTitle) {
+                islamicDateOffset = newOffset
+                updateIcon()
+            }
+        }
     }
     
     // Update the taskbar title to show the current day’s Jalali date in Persian
@@ -420,9 +467,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         showCopyNotification(message: "Jalali Date Copied: \(getCurrentArabicDate())")
     }
     
+    @objc func showDateConvert(){
+        let content = UNMutableNotificationContent()
+        content.body = "Comming soon !"
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Notification error: \(error)")
+            }
+        }
+    }
+    
     @objc func showMonthTableAlert() {
         let alert = NSAlert()
-        alert.messageText = "Gregorian and Jalali Months"
+        alert.messageText = "Calendars Months name Table"
         alert.alertStyle = .informational
 
         // Create the table view
@@ -433,8 +493,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         // Define columns for the table with custom widths
         let columns = [
             ("Number", "number", 40.0),
-            ("Gregorian Month", "gregorian", 80.0),
-            ("Jalali Month", "jalali", 80.0),
+            ("Gregorian", "gregorian", 80.0),
+            ("Arabic (Hijri)", "jalali", 80.0),
+            ("Jalali (Persian)", "jalali", 80.0),
             ("Number", "number", 40.0),
         ]
         
@@ -453,7 +514,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let tableHeight = CGFloat(data.count) * tableView.rowHeight
         
         // Set the frame for the table directly
-        tableView.frame = NSRect(x: 0, y: 0, width: 300, height: tableHeight)
+        tableView.frame = NSRect(x: 0, y: 0, width: 380, height: tableHeight)
 
         // Add the table directly as the alert's accessory view
         alert.accessoryView = tableView
