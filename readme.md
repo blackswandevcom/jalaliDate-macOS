@@ -1,4 +1,4 @@
-<img src="toolbar.png" style="border-radius: 8px; width: 400px;" />
+<img src="app-preview.png" style="border-radius: 8px; width: 400px;" />
 
 # [Jalali Date Toolbar for macOS](https://github.com/blackswandevcom/jalaliDate-macOS)
 Developed by **[AmirhpCom](https://amirhp.com/)** at [BlackSwanDev.Com](https://blackSwanDev.com)
@@ -7,11 +7,16 @@ Developed by **[AmirhpCom](https://amirhp.com/)** at [BlackSwanDev.Com](https://
 The Jalali Date App is a lightweight macOS menu bar application that displays the current date in the Jalali (Persian) calendar alongside the Gregorian date. Designed to be simple and non-intrusive, it’s the perfect companion for users who need quick access to both Persian and Western calendars directly from their Mac’s menu bar.
 
 
-### 🎉 Version 2.0
-In this release, we’ve made some great enhancements to improve usability and accessibility:
+### 🎉 Version 6.0 (2025-03-23 | 1404-01-03)
+This release brings powerful new features and quality-of-life improvements:
 
--	**Refreshed Menubar Display**: We’ve tweaked the menubar display to be even more clear and user-friendly, providing you with the information you need at a glance.
--	**Quick Peek at Month Names**: Added a convenient “Months Table” option, allowing you to view the Gregorian and Jalali month names side-by-side. It’s perfect for quick reference – especially if you’re like us and occasionally need a reminder! 😉
+- **Date Converter View**: Convert dates across Jalali (Persian), Gregorian, and Islamic (Hijri) calendars with a live, side-by-side view.
+- **Copy with One Click**: Instantly copy any calendar’s date by clicking on it — both from the main menu and inside the converter view.
+- **Islamic (Arabic/Hijri) Calendar**: Now this app Supports 3 calendar types: Gregorian, Jalali & Hijri
+
+- **Hijri Offset Control**: Fine-tune the Islamic (Hijri) calendar by applying a custom day offset between -4 and +4.
+- **Compact Buttons with Icons**: Optimized toolbar button size and appearance for a cleaner interface.
+- **Fully Open Source**: As always, this app remains 100% free and open under GPL v3.
 
 
 ### 🚀 Key Features
@@ -67,6 +72,6 @@ This app is developed by **[Amirhp.Com](https://amirhp.com/)**, a software devel
 
 ### 📸 Screenshots
 
-|Dropdown Menu|Dropdown Menu v2|Alert|About Dialog|
+|date-converter|month-table|setting|about|
 |---|---|---|---|
-|<img src="menu.png" style="border-radius: 8px; width: 300px;" />|<img src="menu-v2.png" style="border-radius: 8px; width: 300px;" />|<img src="copied.png" style="border-radius: 8px; width: 300px;" />|<img src="about.png" style="border-radius: 8px; width: 300px;" />|
+|<img src="date-converter.png" width="200px" alt="date-converter">|<img src="month-table.png" width="200px" alt="month-table">|<img src="setting.png" width="200px" alt="setting">|<img src="about.png" width="200px" alt="about">|
