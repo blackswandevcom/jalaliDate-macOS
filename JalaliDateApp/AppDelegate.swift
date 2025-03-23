@@ -464,7 +464,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString("\(getCurrentArabicDate())", forType: .string)
-        showCopyNotification(message: "Jalali Date Copied: \(getCurrentArabicDate())")
+        showCopyNotification(message: "Islamic Date Copied: \(getCurrentArabicDate())")
     }
     
     @objc func showDateConvert(){
@@ -494,7 +494,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         let columns = [
             ("Number", "number", 40.0),
             ("Gregorian", "gregorian", 80.0),
-            ("Arabic (Hijri)", "jalali", 80.0),
+            ("Islamic (Hijri)", "jalali", 80.0),
             ("Jalali (Persian)", "jalali", 80.0),
             ("Number", "number", 40.0),
         ]
@@ -565,15 +565,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         alert.informativeText = """
         Version 5.0 | 2025-03-23 | 1404-01-03
 
-        JalaliDate-Toolbar shows Jalali and Gregorian dates in your menu bar, with shortcuts for quick copying. Simple, lightweight, and efficient.
+        This macOS menu bar app shows the current Jalali date directly in the menu bar icon. With a simple click, it reveals today’s date in Persian (Jalali), Islamic (Hijri), and Gregorian calendars. You can fine-tune the Hijri date offset, browse a comprehensive month names table across all calendars, and quickly copy the date in your preferred format — all in a clean, minimal interface.
         """
         alert.alertStyle = .informational
         
         // Add a button for "Thanks!"
         alert.addButton(withTitle: "Close")
         
+        
         // Add a second button for "Visit Website"
-        alert.addButton(withTitle: "Visit Amirhp.Com")
+        alert.addButton(withTitle: "Amirhp.Com")
+        
+        
+        // Add a second button for "Visit Website"
+        alert.addButton(withTitle: "BlackSwanDev.Com")
+
         
         // Ensure the alert opens as the front window
         NSApp.activate(ignoringOtherApps: true) // Bring app to the front
@@ -584,6 +590,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
         if response == .alertSecondButtonReturn {
             // Open the URL when the "Visit Amirhp.Com" button is clicked
             if let url = URL(string: "https://amirhp.com") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        if response == .alertThirdButtonReturn {
+            // Open the URL when the "Visit Amirhp.Com" button is clicked
+            if let url = URL(string: "https://blackswandev.com") {
                 NSWorkspace.shared.open(url)
             }
         }
