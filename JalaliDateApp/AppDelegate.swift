@@ -116,16 +116,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTab
             self.updateTaskbarTitle()
         }
     
-        if let button = statusItem?.button {
-            button.sendAction(on: []) // Disable default actions
-            button.target = nil
-            button.action = nil
-
-            // Add double-click handler
-            let doubleClickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleDoubleClick(_:)))
-            doubleClickGesture.numberOfClicksRequired = 2
-            button.addGestureRecognizer(doubleClickGesture)
-        }
+//        if let button = statusItem?.button {
+//            button.sendAction(on: []) // Disable default actions
+//            button.target = nil
+//            button.action = nil
+//
+//            // Add double-click handler
+//            let doubleClickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleDoubleClick(_:)))
+//            doubleClickGesture.numberOfClicksRequired = 2
+//            button.addGestureRecognizer(doubleClickGesture)
+//        }
         
     }
     
