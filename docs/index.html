@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jDate — Jalali date in your Mac menubar</title>
+<meta name="description" content="Free macOS menubar app: today's Jalali, Gregorian and Hijri date, Iranian holidays, your calendars, birthdays, weather, world clocks and desktop widgets.">
+<meta property="og:title" content="jDate — Jalali date in your Mac menubar">
+<meta property="og:description" content="Jalali, Gregorian and Hijri dates, Iranian holidays, weather and widgets. Free for macOS.">
+<meta property="og:image" content="https://blackswandevcom.github.io/jalaliDate-macOS/screenshots/popover-wide.png">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;600&family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --turquoise:#18C6B8; --ocean:#0E8FB0; --lapis:#1F4FA8; --saffron:#FFB43A;
+  --ink:#1A2F7A; --text:#1B2233; --muted:#5B6478; --paper:#FFFFFF; --bg:#F2F5FA; --line:#DCE3EE;
+  --head:linear-gradient(120deg,var(--turquoise),var(--ocean) 50%,var(--lapis));
+}
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#BFD0FF; --text:#E7ECF5; --muted:#9AA4B8; --paper:#18202E; --bg:#0E141F; --line:#263247; }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:400 17px/1.6 "Instrument Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit}
+.fa{font-family:Vazirmatn,system-ui,sans-serif;direction:rtl}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* fake macOS menubar, with the app's own badge in it */
+.menubar{position:sticky;top:0;z-index:5;height:30px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 16px;
+  font:600 13px/1 -apple-system,"Instrument Sans",sans-serif;color:#fff;background:rgba(20,28,44,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.menubar .left{margin-right:auto;display:flex;gap:18px;align-items:center}
+.menubar .left b{font-size:15px}
+.badge{display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 4px;border:1.6px solid #fff;border-radius:5px;font:700 12px/1 Vazirmatn,sans-serif}
+.menubar .mb-date{font-family:Vazirmatn,sans-serif;font-weight:400}
+.menubar .hide-s{opacity:.85}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;padding:80px 0 72px}
+.eyebrow{font:600 13px/1 "Instrument Sans";letter-spacing:.14em;text-transform:uppercase;color:var(--ocean)}
+h1{font:800 clamp(44px,6.4vw,78px)/.98 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;margin:18px 0 22px;color:var(--text)}
+h1 .fa{display:block;font-weight:900;font-size:.5em;line-height:1.5;letter-spacing:0;color:var(--ocean);margin-top:6px}
+.lede{font-size:19px;color:var(--muted);max-width:30em;margin:0 0 34px}
+.cta{display:inline-flex;align-items:center;gap:16px;padding:18px 30px 18px 24px;border-radius:20px;background:var(--head);color:#fff;text-decoration:none;
+  box-shadow:inset 0 -6px 0 var(--saffron),0 14px 34px -12px rgba(14,143,176,.65);transition:transform .2s,box-shadow .2s}
+.cta:hover{transform:translateY(-2px);box-shadow:inset 0 -6px 0 var(--saffron),0 20px 40px -12px rgba(14,143,176,.75)}
+.cta:focus-visible,a:focus-visible{outline:3px solid var(--saffron);outline-offset:3px}
+.cta svg{width:30px;height:30px;flex:none}
+.cta b{display:block;font:800 22px/1.1 "Bricolage Grotesque"}
+.cta small{display:block;font-size:14px;opacity:.9}
+.sub{margin-top:16px;font-size:14px;color:var(--muted)}
+.sub a{color:var(--ocean)}
+
+/* signature: a live tear-off calendar page, same as the app icon */
+.page{position:relative;border-radius:34px;overflow:hidden;background:var(--paper);box-shadow:0 40px 80px -30px rgba(26,47,122,.45),0 0 0 1px var(--line);
+  transform:rotate(2.5deg);animation:drop .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes drop{from{transform:translateY(-40px) rotate(-4deg);opacity:0}}
+.page-head{background:var(--head);color:#fff;text-align:center;padding:26px 16px 22px;border-bottom:8px solid var(--saffron);font:700 clamp(26px,3.4vw,38px)/1.2 Vazirmatn}
+.page-day{text-align:center;font:900 clamp(150px,19vw,230px)/1.05 Vazirmatn;color:var(--ink);padding:14px 0 0}
+.page-week{text-align:center;font:700 24px/1 Vazirmatn;color:var(--muted);padding-bottom:22px}
+.page-foot{display:grid;grid-template-columns:1fr 1fr;border-top:1px dashed var(--line)}
+.page-foot div{padding:16px 18px;font-size:15px;color:var(--muted)}
+.page-foot div+div{border-left:1px dashed var(--line);text-align:right}
+.page-foot b{display:block;color:var(--text);font-weight:600}
+
+/* sections */
+section{padding:72px 0}
+h2{font:800 clamp(32px,4vw,48px)/1.05 "Bricolage Grotesque";letter-spacing:-.02em;margin:0 0 14px}
+.intro{color:var(--muted);max-width:36em;margin:0 0 36px}
+.shot{border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(26,47,122,.5),0 0 0 1px var(--line);background:var(--paper)}
+
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.feature{background:var(--paper);padding:26px 24px}
+.feature h3{margin:0 0 6px;font:800 19px/1.25 "Bricolage Grotesque"}
+.feature p{margin:0;color:var(--muted);font-size:15.5px}
+.feature .fa{color:var(--ocean);font-weight:700;font-size:15px;display:block;margin-bottom:8px}
+
+.gallery{display:grid;grid-template-columns:.8fr 1.2fr;gap:24px;align-items:start}
+.gallery .stack{display:grid;gap:24px}
+.hero>*,.gallery>*,.gallery .stack>*{min-width:0}
+body{overflow-x:hidden}
+.widgets{display:flex;gap:24px;align-items:flex-end;justify-content:center;flex-wrap:wrap}
+.widgets img{border-radius:24px;box-shadow:0 24px 50px -24px rgba(26,47,122,.55)}
+
+/* version history: a real sequence, so it gets a timeline */
+.timeline{list-style:none;margin:0;padding:0;border-left:3px solid var(--line)}
+.timeline li{position:relative;padding:0 0 26px 26px}
+.timeline li::before{content:"";position:absolute;left:-8px;top:7px;width:13px;height:13px;border-radius:50%;background:var(--paper);border:3px solid var(--ocean)}
+.timeline li:first-child::before{background:var(--saffron);border-color:var(--saffron)}
+.timeline b{font:800 18px "Bricolage Grotesque"}
+.timeline time{color:var(--muted);font-size:14px;margin-left:8px}
+.timeline p{margin:4px 0 0;color:var(--muted);font-size:15.5px}
+
+.final{text-align:center;padding:90px 0 100px}
+.final h2{margin-bottom:28px}
+footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a{color:var(--ocean)}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;padding:48px 0;gap:48px}
+  .page{max-width:380px;margin:0 auto;transform:rotate(1.5deg)}
+  .features{grid-template-columns:1fr}
+  .gallery{grid-template-columns:1fr}
+  .menubar .hide-s{display:none}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+
+<div class="menubar" aria-hidden="true">
+  <span class="left"><span>Finder</span><span class="hide-s">File</span><span class="hide-s">Edit</span><span class="hide-s">View</span></span>
+  <span class="badge" id="mb-badge">۱۳</span>
+  <span class="mb-date hide-s" id="mb-date"></span>
+  <span id="mb-time"></span>
+</div>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Free menubar app for macOS</div>
+      <h1>Today, in the calendar you live by.<span class="fa">تاریخ شمسی، همیشه بالای صفحه</span></h1>
+      <p class="lede">jDate puts the Jalali date in your Mac’s menubar, with the Gregorian and Hijri dates one click away. It also shows Iranian holidays, your own calendars, birthdays, weather and world clocks.</p>
+      <a class="cta" href="https://github.com/blackswandevcom/jalaliDate-macOS/releases/latest">
+        <svg viewBox="0 0 30 30" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v17M8 13l7 7 7-7M4 24v1a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-1"/></svg>
+        <span><b>Download jDate 8.0</b><small>.dmg · macOS 15 Sequoia or later</small></span>
+      </a>
+      <p class="sub">Open source under GPL v3 · <a href="https://github.com/blackswandevcom/jalaliDate-macOS">Source on GitHub</a></p>
+    </div>
+
+    <div class="page" role="img" aria-label="Today's date in the Jalali calendar">
+      <div class="page-head fa" id="p-month">آبان ۱۴۰۳</div>
+      <div class="page-day fa" id="p-day">۱۳</div>
+      <div class="page-week fa" id="p-week">یکشنبه</div>
+      <div class="page-foot">
+        <div>Gregorian<b id="p-greg">3 November 2024</b></div>
+        <div>Hijri<b class="fa" id="p-hijri">۱ جمادی‌الاول ۱۴۴۶</b></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<section>
+  <div class="wrap">
+    <h2>One click on the date opens everything.</h2>
+    <p class="intro">The popover shows the month with holidays in red and the Gregorian and Hijri day under each date. Click a day to see what’s on it. Want more room? Switch to the wide layout, with the calendar and events side by side.</p>
+    <div class="shot"><img src="screenshots/popover-wide.png" alt="jDate's wide popover: header with today's date in three calendars, the Jalali month grid, and the selected day's events" loading="lazy"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What jDate does</h2>
+    <p class="intro">No account and no tracking. The holiday calendar is built in, so it works without internet.</p>
+    <div class="features">
+      <div class="feature"><span class="fa">سه تقویم</span><h3>Jalali, Gregorian, Hijri</h3><p>All three dates at a glance. Click one to copy it, or use ⌘C, ⌘X, ⌘A.</p></div>
+      <div class="feature"><span class="fa">تعطیلات رسمی</span><h3>Iranian holidays</h3><p>Solar and lunar holidays, Yalda, Chaharshanbe Suri and more, with an adjustable Hijri offset.</p></div>
+      <div class="feature"><span class="fa">رویدادها</span><h3>Your calendars</h3><p>Google, iCloud and others through macOS Calendar, plus public ICS subscriptions.</p></div>
+      <div class="feature"><span class="fa">تولدها</span><h3>Birthday reminders</h3><p>From Contacts or your own list, in any of the three calendars, with a notification on the day.</p></div>
+      <div class="feature"><span class="fa">آب‌وهوا</span><h3>Weather and forecast</h3><p>Five to seven days from Open-Meteo, MET Norway, wttr.in, OpenWeatherMap or WeatherAPI.</p></div>
+      <div class="feature"><span class="fa">ابزارک‌ها</span><h3>Desktop widgets</h3><p>Today, Month, World Clock, Upcoming, Weather and Countdown, for the desktop or Notification Center.</p></div>
+      <div class="feature"><span class="fa">ظاهر</span><h3>Themes and fonts</h3><p>Seasonal or weather themes, your own colors, and any font installed on your Mac, Persian fonts first.</p></div>
+      <div class="feature"><span class="fa">آیکن منوبار</span><h3>Menubar icon designer</h3><p>Pick a shape and colors, and write your own date format for the menubar.</p></div>
+      <div class="feature"><span class="fa">ابزارها</span><h3>Converter and more</h3><p>Date converter, date difference, world clocks, a global shortcut (⌃⌥J) and launch at login.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Make it yours</h2>
+    <p class="intro">Show, hide and reorder every part of the popover, size each widget to full, half or a third, and preview the result as you go.</p>
+    <div class="gallery">
+      <div class="shot"><img src="screenshots/popover.png" alt="Classic popover with an autumn theme, date cards, weather, world clocks, countdown and calendar" loading="lazy"></div>
+      <div class="stack">
+        <div class="shot"><img src="screenshots/customize.png" alt="Customize popover settings with a live preview" loading="lazy"></div>
+        <div class="shot"><img src="screenshots/themes.png" alt="Theme settings" loading="lazy"></div>
+        <div class="shot"><img src="screenshots/converter.png" alt="Date converter" loading="lazy"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Desktop widgets</h2>
+    <p class="intro">Right-click your desktop, choose Edit Widgets and search for jDate.</p>
+    <div class="widgets">
+      <img src="screenshots/widget-today.png" width="420" alt="Today widget" loading="lazy">
+      <img src="screenshots/widget-weather.png" width="300" alt="Weather widget with forecast" loading="lazy">
+      <img src="screenshots/widget-month.png" width="300" alt="Month widget" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Since ۱۳ آبان ۱۴۰۳</h2>
+    <p class="intro">jDate was first released on 3 November 2024, the date on its icon. <a href="https://github.com/blackswandevcom/jalaliDate-macOS/blob/main/CHANGELOG.md">Full changelog</a>.</p>
+    <ol class="timeline" reversed>
+      <li><b>8.0</b><time>2 Nov 2026 · ۱۱ آبان ۱۴۰۵</time><p>Events, birthdays, weather, world clocks, themes, desktop widgets, fonts, a wide layout and a new icon.</p></li>
+      <li><b>7.0</b><time>2 Nov 2026</time><p>New SwiftUI popover, app window with converter and settings, launch at login.</p></li>
+      <li><b>6.0</b><time>23 Mar 2025 · ۳ فروردین ۱۴۰۴</time><p>Date converter across all three calendars.</p></li>
+      <li><b>5.0</b><time>23 Mar 2025</time><p>Hijri date and offset, month name tables.</p></li>
+      <li><b>3.0</b><time>24 Nov 2024</time><p>Gregorian date beside the Jalali date, copy shortcuts.</p></li>
+      <li><b>1.0</b><time>3 Nov 2024 · ۱۳ آبان ۱۴۰۳</time><p>The Jalali date in the menubar.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>Put the Jalali date in your menubar.</h2>
+    <a class="cta" href="https://github.com/blackswandevcom/jalaliDate-macOS/releases/latest">
+      <svg viewBox="0 0 30 30" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v17M8 13l7 7 7-7M4 24v1a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-1"/></svg>
+      <span><b>Download jDate 8.0</b><small>.dmg · macOS 15 Sequoia or later</small></span>
+    </a>
+    <p class="sub">Drag it into Applications. If macOS blocks the first launch, right-click the app and choose Open.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Made by <a href="https://amirhp.com">Amirhossein Hosseinpour</a> at <a href="https://blackswandev.com">BlackSwanDev</a></span>
+    <span><a href="https://amirhp.com/open-source/jdate/">jDate on amirhp.com</a> · GPL v3 · <a href="https://github.com/blackswandevcom/jalaliDate-macOS/issues">Report an issue</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  try{
+    var d=new Date();
+    function f(cal,opt){return new Intl.DateTimeFormat('fa-IR-u-ca-'+cal+'-nu-arabext',opt).format(d);}
+    var day=f('persian',{day:'numeric'}), month=f('persian',{month:'long'}), year=f('persian',{year:'numeric'}).replace(/\s*ه\S{0,2}\.?ش\.?\s*$/,'');
+    var week=f('persian',{weekday:'long'});
+    document.getElementById('p-day').textContent=day;
+    document.getElementById('p-month').textContent=month+' '+year;
+    document.getElementById('p-week').textContent=week;
+    document.getElementById('p-greg').textContent=d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('p-hijri').textContent=f('islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).replace(/\s*ه\S{0,2}\.?ق\.?\s*$/,'');
+    document.getElementById('mb-badge').textContent=day;
+    document.getElementById('mb-date').textContent=week+' '+day+' '+month;
+    var t=function(){document.getElementById('mb-time').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+    t(); setInterval(t,30000);
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

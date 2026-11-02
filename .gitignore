@@ -1,0 +1,13 @@
+.DS_Store
+xcuserdata/
+build/
+DerivedData/
+*.xcuserstate
+
+# built apps and installers (DMGs go to GitHub Releases)
+dist/
+setup/
+Jalali Date.app/
+JalaliDateApp-v6/
+JalaliDateApp-v6.1/
+_stuff/old-app/
