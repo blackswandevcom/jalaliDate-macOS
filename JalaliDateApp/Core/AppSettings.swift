@@ -173,6 +173,27 @@ struct PopoverLayout: Codable, Equatable {
     var cellHijriRaw: Bool? = nil
     var cellDayFontRaw: Double? = nil
     var cellSecondaryFontRaw: Double? = nil
+    var headerRaw: HeaderLayout? = nil
+    var compactDatesRaw: Bool? = nil
+    var showFooterRaw: Bool? = nil
+
+    /// The button bar at the bottom of the popover.
+    var showFooter: Bool {
+        get { showFooterRaw ?? true }
+        set { showFooterRaw = newValue }
+    }
+
+    /// Date tiles on one line with less padding.
+    var compactDates: Bool {
+        get { compactDatesRaw ?? false }
+        set { compactDatesRaw = newValue }
+    }
+
+    /// What the coloured header shows, and each line's size and colour.
+    var header: HeaderLayout {
+        get { headerRaw ?? HeaderLayout() }
+        set { headerRaw = newValue }
+    }
 
     static let widths: [Double] = [320, 340, 380, 440]
     static let wideWidths: [Double] = [640, 720, 800, 880]
@@ -213,6 +234,81 @@ struct PopoverLayout: Codable, Equatable {
         }
         if !current.isEmpty { rows.append(current) }
         return rows
+    }
+}
+
+// MARK: - Header contents
+
+/// One line (or the big number) in the coloured header.
+enum HeaderItem: String, CaseIterable, Identifiable, Codable {
+    case gregorianWeekday, gregorianDate, hijriDate, weather, backToToday
+    case jalaliWeekday, jalaliMonth, caption, dayNumber, events
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .gregorianWeekday: return "Weekday (English)"
+        case .gregorianDate: return "Gregorian date"
+        case .hijriDate: return "Hijri date"
+        case .weather: return "Weather"
+        case .backToToday: return "“Back to today” button"
+        case .jalaliWeekday: return "Weekday (Persian)"
+        case .jalaliMonth: return "Persian month and year"
+        case .caption: return "Theme name / days from today"
+        case .dayNumber: return "Day number"
+        case .events: return "The day's events"
+        }
+    }
+
+    var defaultSize: Double {
+        switch self {
+        case .gregorianWeekday, .jalaliWeekday: return 13
+        case .gregorianDate, .jalaliMonth: return 12
+        case .hijriDate, .weather: return 11
+        case .backToToday: return 10
+        case .caption: return 10
+        case .dayNumber: return 42
+        case .events: return 12
+        }
+    }
+
+    var sizeRange: ClosedRange<Double> { self == .dayNumber ? 20...72 : 8...24 }
+
+    /// Events start off in the panel below the calendar.
+    var defaultVisible: Bool { self != .events }
+
+    /// How strong the default (white) text is.
+    var defaultOpacity: Double {
+        switch self {
+        case .gregorianDate, .jalaliMonth: return 0.9
+        case .hijriDate: return 0.8
+        case .caption: return 0.75
+        default: return 1
+        }
+    }
+}
+
+struct HeaderItemStyle: Codable, Equatable {
+    var visible = true
+    var size: Double? = nil
+    /// #RRGGBB, or nil for the theme's text colour.
+    var color: String? = nil
+}
+
+struct HeaderLayout: Codable, Equatable {
+    var items: [String: HeaderItemStyle] = [:]
+
+    func style(_ i: HeaderItem) -> HeaderItemStyle { items[i.rawValue] ?? HeaderItemStyle(visible: i.defaultVisible) }
+    func visible(_ i: HeaderItem) -> Bool { style(i).visible }
+    func size(_ i: HeaderItem) -> CGFloat { CGFloat(style(i).size ?? i.defaultSize) }
+    func color(_ i: HeaderItem) -> Color {
+        if let hex = style(i).color { return Color(hex: hex) }
+        return Color.white.opacity(i.defaultOpacity)
+    }
+
+    subscript(_ i: HeaderItem) -> HeaderItemStyle {
+        get { style(i) }
+        set { items[i.rawValue] = newValue }
     }
 }
 

@@ -22,7 +22,7 @@ struct WidgetGrid: View {
             ForEach(Array(settings.layout.rows.enumerated()), id: \.offset) { _, row in
                 HStack(spacing: gap) {
                     ForEach(row) { cfg in
-                        WidgetView(model: model, config: cfg)
+                        WidgetView(model: model, config: cfg, compactDates: settings.layout.compactDates)
                             .frame(width: w(cfg.size))
                             .contextMenu { menu(for: cfg) }
                     }
@@ -52,15 +52,17 @@ struct WidgetGrid: View {
 /// Tile chrome shared by all popover widgets.
 struct Tile<Content: View>: View {
     var tint: Color = .primary
+    /// One-line tile with less padding.
+    var compact = false
     @ViewBuilder var content: Content
     @State private var hovering = false
 
     var body: some View {
         content
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(hovering ? 0.09 : 0.05)))
+            .padding(.horizontal, compact ? 8 : 10)
+            .padding(.vertical, compact ? 5 : 8)
+            .frame(maxWidth: .infinity, minHeight: compact ? 26 : 50, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: compact ? 8 : 10, style: .continuous).fill(Color.primary.opacity(hovering ? 0.09 : 0.05)))
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
     }
@@ -69,10 +71,11 @@ struct Tile<Content: View>: View {
 struct WidgetView: View {
     @ObservedObject var model: AppModel
     let config: WidgetConfig
+    var compactDates = false
 
     var body: some View {
         switch config.kind {
-        case .date(let kind): DateWidget(model: model, kind: kind, size: config.size)
+        case .date(let kind): DateWidget(model: model, kind: kind, size: config.size, compact: compactDates)
         case .weather(let city): WeatherWidget(weather: model.weather, city: city, size: config.size)
         case .clock(let city): ClockWidget(city: city, size: config.size, h24: model.settings.general.clock24h)
         case .countdown(let target): CountdownWidget(target: target, size: config.size, now: model.now)
@@ -87,18 +90,48 @@ struct DateWidget: View {
     @ObservedObject var model: AppModel
     let kind: CalendarKind
     let size: WidgetSize
+    var compact = false
 
-    private var copied: Bool { model.copiedKey == "today-\(kind.rawValue)" }
+    private var copied: Bool { model.copiedKey == "date-\(kind.rawValue)" }
+    /// The day picked in the calendar (today unless another day was clicked).
+    private var day: Date { model.selectedDay }
+
+    /// One line: icon, day and month, and the numeric date when there is room.
+    private var compactBody: some View {
+        let p = CalendarService.ymd(day, kind)
+        let short = kind == .gregorian
+            ? "\(p.day) \(CalendarService.format(day, .gregorian, "MMM", locale: Locale(identifier: "en_US")))"
+            : CalendarService.persianDigits("\(p.day) \(kind.monthNames[p.month - 1])")
+        return HStack(spacing: 5) {
+            Image(systemName: copied ? "checkmark.circle.fill" : kind.symbol)
+                .font(.app(size: 11))
+                .foregroundStyle(copied ? .green : kind.tint)
+            Text(size == .full ? CalendarService.long(day, kind) : short)
+                .font(.app(size: 12, weight: .semibold))
+                .lineLimit(1).minimumScaleFactor(0.75)
+            Spacer(minLength: 2)
+            if size != .third {
+                Text(CalendarService.iso(day, kind))
+                    .font(.app(size: 10).monospacedDigit()).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+            }
+            if size == .full && !copied {
+                Text("⌘\(String(kind.copyShortcut.character).uppercased())").font(.app(size: 9)).foregroundStyle(.tertiary)
+            }
+        }
+    }
 
     var body: some View {
-        Button { model.copyToday(kind) } label: {
-            Tile {
-                if size == .full {
+        Button { model.copyDate(day, kind, key: "date-\(kind.rawValue)") } label: {
+            Tile(compact: compact) {
+                if compact {
+                    compactBody
+                } else if size == .full {
                     HStack(spacing: 10) {
                         Image(systemName: kind.symbol).font(.app(size: 20)).foregroundStyle(kind.tint)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(CalendarService.long(model.now, kind)).font(.app(size: 13, weight: .medium))
-                            Text(CalendarService.iso(model.now, kind)).font(.app(size: 11).monospacedDigit()).foregroundStyle(.secondary)
+                            Text(CalendarService.long(day, kind)).font(.app(size: 13, weight: .medium))
+                            Text(CalendarService.iso(day, kind)).font(.app(size: 11).monospacedDigit()).foregroundStyle(.secondary)
                         }
                         Spacer(minLength: 0)
                         if copied {
@@ -108,25 +141,25 @@ struct DateWidget: View {
                         }
                     }
                 } else {
-                    let p = CalendarService.ymd(model.now, kind)
+                    let p = CalendarService.ymd(day, kind)
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 4) {
                             Image(systemName: copied ? "checkmark.circle.fill" : kind.symbol)
                                 .foregroundStyle(copied ? .green : kind.tint)
                             Text(kind.shortTitle).font(.app(size: 10, weight: .semibold)).foregroundStyle(.secondary)
                         }
-                        Text(kind == .gregorian ? "\(p.day) \(CalendarService.format(model.now, .gregorian, "MMM", locale: Locale(identifier: "en_US")))"
+                        Text(kind == .gregorian ? "\(p.day) \(CalendarService.format(day, .gregorian, "MMM", locale: Locale(identifier: "en_US")))"
                                                 : CalendarService.persianDigits("\(p.day) \(kind.monthNames[p.month - 1])"))
                             .font(.app(size: size == .third ? 12 : 14, weight: .semibold))
                             .lineLimit(1).minimumScaleFactor(0.7)
-                        Text(CalendarService.iso(model.now, kind)).font(.app(size: 10).monospacedDigit()).foregroundStyle(.secondary)
+                        Text(CalendarService.iso(day, kind)).font(.app(size: 10).monospacedDigit()).foregroundStyle(.secondary)
                     }
                 }
             }
         }
         .buttonStyle(.plain)
         .keyboardShortcut(kind.copyShortcut, modifiers: .command)
-        .help("Copy \(kind.title) date")
+        .help(model.isTodaySelected ? "Copy today's \(kind.title) date" : "Copy the \(kind.title) date of the selected day")
     }
 }
 

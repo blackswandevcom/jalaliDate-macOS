@@ -92,7 +92,7 @@ final class AppModel: ObservableObject {
     }
 
     static var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.1"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.2"
     }
 
     static var buildNumber: String {
@@ -120,10 +120,6 @@ final class AppModel: ObservableObject {
 
     func copyDate(_ date: Date, _ kind: CalendarKind, key: String) {
         copy(settings.general.copyFormat.string(date, kind), key: key)
-    }
-
-    func copyToday(_ kind: CalendarKind) {
-        copyDate(Date(), kind, key: "today-\(kind.rawValue)")
     }
 
     /// `2026-11-02 | 1405-08-11` — handy for release notes.

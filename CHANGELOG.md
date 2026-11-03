@@ -2,6 +2,17 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.2 — 2026-11-03 · 1405-08-12
+- The Jalali, Gregorian and Hijri date tiles follow the day you click in the calendar, and clicking one (or ⌘C, ⌘X, ⌘A) copies that day's date
+- Header contents: show or hide each line of the header (weekdays, Gregorian and Hijri dates, weather, the day number and more) and set each one's size and color
+- Option to show the picked day's events inside the header instead of the panel under the calendar
+- Birthdays: a year calendar with every month and the birthdays on each day (click a day for the details, or to add one), and a timeline of the next twelve months
+- Birthdays that synced accounts left in Contacts more than once now show, and notify, only once
+- Date tiles can be one line with less padding (Popover Layout › Widgets › Date tiles: One line)
+- Option to hide the button bar at the bottom of the popover (Popover Layout); its shortcuts keep working and the menu bar right-click menu still has Settings and Quit
+- jDate › Settings… (⌘,) opens jDate's settings instead of an empty window, and the app menu is named jDate
+- Liquid Glass popover background on macOS 26: the glass edges stay and the desktop behind is really blurred, the way Terminal blurs its windows (Theme › Popover background › Material; Classic keeps the old look). New Terminal preset matching Terminal's Pro profile, and the preset in use is checked
+
 ## v8.1 — 2026-11-03 · 1405-08-12
 - Click a day in the calendar and the header shows that day; click the header to jump back to today. The events panel no longer repeats the date
 - Animated headers: Aurora, Liquid mesh, Waves, Lava lamp, Starfield, Girih (Persian tiles) and Ripples, each with your own three colors, speed and intensity

@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/blackswandevcom/jalaliDate-macOS/releases">
-    <img src="docs/download-button.svg" width="420" alt="Download jDate 8.1 for macOS">
+    <img src="docs/download-button.svg" width="420" alt="Download jDate 8.2 for macOS">
   </a>
 </p>
 
@@ -40,18 +40,19 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 
 ## Features
 
-- **Three calendars at a glance** — Jalali, Gregorian and Hijri; click any date to copy it (⌘C / ⌘X / ⌘A).
+- **Three calendars at a glance** — Jalali, Gregorian and Hijri; click any date to copy it (⌘C / ⌘X / ⌘A). The tiles follow the day you pick in the calendar, as cards or one line each.
 - **Month calendar** — Fridays and holidays in red, optional Gregorian and Hijri day under each date, adjustable font sizes.
 - **Day events** — click a day to see its holidays, occasions, birthdays and calendar events.
 - **Iranian public calendar** built in — solar and lunar holidays, Yalda, Chaharshanbe Suri and more, no internet needed.
 - **Your calendars** — Google, iCloud and others through macOS Calendar, plus public ICS subscriptions.
-- **Birthday reminders** from Contacts or your own list, in any of the three calendars.
+- **Birthday reminders** from Contacts or your own list, in any of the three calendars, with a year calendar and a timeline of the next twelve months.
 - **Weather** with a 5–7 day forecast — Open-Meteo, MET Norway, wttr.in, OpenWeatherMap or WeatherAPI.com.
 - **World clocks**, countdowns and an upcoming-events list as popover widgets in full, half or one-third width.
 - **Two layouts** — the classic stacked popover, or a wide one with the calendar and events side by side.
 - **Themes** — seasons, live weather, presets, your own colors, 13 animated styles, or your own photo or looping muted video.
 - **Occasion themes** — Nowruz, Chaharshanbe Suri, Sizdah Bedar, Yalda, Ramadan, Eid al-Fitr, Eid al-Adha, Muharram, Christmas, New Year's Eve, 4th of July, Halloween and Valentine's Day switch on by themselves on their days.
-- **Glass background** — color, opacity and blur for the popover and the desktop widgets, like Terminal's window background.
+- **Liquid Glass background** — color, opacity and blur for the popover and the desktop widgets, like Terminal's window background, with a preset that matches Terminal's Pro profile.
+- **Header contents** — show or hide each line of the header, set its size and color, and show the picked day's events in it.
 - **Holiday and weekend colors** — pick both colors and which days are the weekend.
 - **Menubar icon designer** — shapes, colors and your own date format.
 - **Desktop & Notification Center widgets** — Today, Month, World Clock, Upcoming, Weather and Countdown.
@@ -65,6 +66,13 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 </p>
 
 <table>
+  <tr>
+    <td width="40%"><img src="docs/screenshots/popover-liquid-glass.png" alt="Liquid Glass popover with the Terminal preset"></td>
+    <td>
+      <img src="docs/screenshots/birthdays-year.png" alt="Birthdays year calendar"><br><br>
+      <img src="docs/screenshots/header-contents.png" alt="Header contents settings">
+    </td>
+  </tr>
   <tr>
     <td width="40%"><img src="docs/screenshots/popover.png" alt="Popover with seasonal theme, widgets and calendar"></td>
     <td>
@@ -97,7 +105,10 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 
 ## What's new
 
-See the **[changelog](CHANGELOG.md)**. Version 8.1 adds occasion themes (Nowruz, Ramadan, Christmas, 4th of July and more),
+See the **[changelog](CHANGELOG.md)**. Version 8.2 makes the popover real Liquid Glass with a Terminal-style blur and a
+Terminal preset, adds a birthday year calendar and timeline, lets you choose each line of the header (size and color too) and
+show the picked day's events in it, makes the date tiles copy the day you pick, adds one-line tiles and lets you hide the
+button bar. Version 8.1 added occasion themes (Nowruz, Ramadan, Christmas, 4th of July and more),
 animated and photo/video headers, a Terminal-style glass background for the popover and widgets, your own holiday and weekend
 colors, and a header that shows the day you click. Version 8.0 brought events, birthdays, weather, world clocks, widgets, fonts,
 a wide layout and the new icon — a calendar page showing **۱۳ آبان ۱۴۰۳**, the day jDate was first released.

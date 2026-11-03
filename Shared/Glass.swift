@@ -13,6 +13,17 @@ enum GlassText: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// How the popover background is drawn.
+enum GlassSurface: String, Codable, CaseIterable, Identifiable {
+    /// macOS 26 Liquid Glass, tinted with the colour, plus a real blur of the desktop like Terminal.
+    case liquid
+    /// The pre-26 look: the system backdrop fades out as the blur goes down.
+    case classic
+    var id: String { rawValue }
+    var title: String { self == .liquid ? "Liquid Glass" : "Classic" }
+    static var supportsLiquid: Bool { if #available(macOS 26, *) { return true } else { return false } }
+}
+
 /// Background colour, opacity and blur, like Terminal's window background.
 /// Used for the popover (app only) and for the desktop widgets (shared through the App Group).
 struct GlassStyle: Codable, Equatable {
@@ -23,6 +34,17 @@ struct GlassStyle: Codable, Equatable {
     /// 0…1, how blurred the desktop behind is.
     var blur = 0.6
     var text: GlassText = .auto
+    /// Optional so settings saved before 8.2 still decode.
+    var surfaceRaw: GlassSurface? = nil
+
+    /// Liquid Glass where the system has it.
+    var surface: GlassSurface {
+        get { GlassSurface.supportsLiquid ? (surfaceRaw ?? .liquid) : .classic }
+        set { surfaceRaw = newValue }
+    }
+
+    /// Window blur radius in points for the Liquid Glass popover (Terminal's 100% is about 64).
+    var blurRadius: Int { Int((max(0, min(1, blur)) * 64).rounded()) }
 
     static let popoverKey = "PopoverGlass"
     static let widgetKey = "WidgetGlass"

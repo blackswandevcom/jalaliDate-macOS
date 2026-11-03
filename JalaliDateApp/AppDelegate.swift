@@ -66,10 +66,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
                 if let j = info["glass"]?.data(using: .utf8), let g = try? dec.decode(GlassStyle.self, from: j) { GlassSettings.shared.popover = g }
                 if let j = info["widgetGlass"]?.data(using: .utf8), let g = try? dec.decode(GlassStyle.self, from: j) { GlassSettings.shared.widget = g }
                 if let j = info["theme"]?.data(using: .utf8), let t = try? dec.decode(ThemeConfig.self, from: j) { self.settings.theme = t }
+                if let j = info["header"]?.data(using: .utf8), let h = try? dec.decode(HeaderLayout.self, from: j) { self.settings.layout.header = h }
                 if let d = info["day"].flatMap(Int.init) {
                     self.model.selectedDay = Calendar(identifier: .gregorian).date(byAdding: .day, value: d, to: self.model.now) ?? self.model.now
                 }
                 if let t = info["tab"].flatMap(MainTab.init(rawValue:)) { self.model.open(t) }
+                if let m = info["bmode"] { UserDefaults.standard.set(m, forKey: "BirthdaysMode") }
+                if let c = info["compact"] { self.settings.layout.compactDates = c == "1" }
+                if let f = info["footer"] { self.settings.layout.showFooter = f == "1" }
+                if let m = info["move"]?.split(separator: ",").compactMap({ Double($0) }), m.count == 2,
+                   let w = self.popover.contentViewController?.view.window { w.setFrameOrigin(NSPoint(x: m[0], y: m[1])) }
                 if let m = info["media"], let (name, kind) = try? await HeaderMedia.importFile(URL(fileURLWithPath: m)) {
                     HeaderMedia.remove(self.settings.theme.mediaFile)
                     self.settings.theme.mediaFile = name
@@ -258,23 +264,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         applyPopoverGlass(GlassSettings.shared.popover)
     }
 
-    /// Terminal-style background: the popover's own blur view fades out as the blur goes down,
-    /// so the desktop behind shows through sharper. The tint itself is drawn by PopoverView.
+    /// Terminal-style background.
+    /// Liquid Glass (macOS 26+): the popover's own glass view gets the colour as its tint, and the
+    /// desktop behind the window gets a real blur with a radius, the way Terminal does it.
+    /// Classic: the system blur view fades out as the blur goes down; PopoverView draws the tint.
     private func applyPopoverGlass(_ glass: GlassStyle) {
         guard let content = popover.contentViewController?.view, let window = content.window,
               let root = window.contentView?.superview ?? window.contentView else { return }
-        let alpha = glass.enabled ? CGFloat(max(0, min(1, glass.blur))) : 1
-        // macOS 26+ draws the popover with a glass view next to the content; older systems with an
-        // NSVisualEffectView. Never fade a view that holds the content, or the content fades too.
+        let liquid = glass.enabled && glass.surface == .liquid
+        let alpha = glass.enabled && !liquid ? CGFloat(max(0, min(1, glass.blur))) : 1
+        // Never fade or tint a view that holds the content, or the content changes too.
         func walk(_ v: NSView) {
             if v === content { return }
             let isBackdrop = v is NSVisualEffectView || NSStringFromClass(type(of: v)).contains("Glass")
             if isBackdrop {
-                if content.isDescendant(of: v) { v.alphaValue = 1 } else { v.alphaValue = alpha; return }
+                if content.isDescendant(of: v) { v.alphaValue = 1 } else {
+                    v.alphaValue = alpha
+                    if #available(macOS 26, *), let g = v as? NSGlassEffectView {
+                        g.style = liquid ? .clear : .regular
+                    }
+                    return
+                }
             }
             v.subviews.forEach(walk)
         }
         walk(root)
+        setBackdropBlur(in: root, radius: liquid ? CGFloat(glass.blurRadius) : 0)
+    }
+
+    /// The Liquid Glass blur sits under the popover's glass view, so the glass edges stay on top.
+    private func setBackdropBlur(in root: NSView, radius: CGFloat) {
+        let existing = root.subviews.compactMap { $0 as? BackdropBlurView }.first
+        guard radius > 0 else { existing?.removeFromSuperview(); return }
+        let view = existing ?? {
+            let v = BackdropBlurView(frame: root.bounds)
+            v.autoresizingMask = [.width, .height]
+            root.addSubview(v, positioned: .below, relativeTo: root.subviews.first)
+            return v
+        }()
+        view.frame = root.bounds
+        view.radius = radius
     }
 
     func popoverDidClose(_ notification: Notification) {

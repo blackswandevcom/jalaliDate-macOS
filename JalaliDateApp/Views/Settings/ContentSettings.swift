@@ -143,8 +143,51 @@ struct BirthdaysView: View {
     @State private var draft = Birthday(name: "", month: 1, day: 1)
     @State private var editingID: String?
     @State private var testSent = false
+    @AppStorage("BirthdaysMode") private var mode: Mode = .year
+
+    enum Mode: String, CaseIterable, Identifiable {
+        case year, timeline, list
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .year: return "Year"
+            case .timeline: return "Timeline"
+            case .list: return "List & Reminders"
+            }
+        }
+    }
 
     var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $mode) {
+                ForEach(Mode.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented).labelsHidden()
+            .frame(maxWidth: 420)
+            .padding(.vertical, 10)
+            Divider()
+            switch mode {
+            case .year: BirthdayYearView(store: store, onAdd: addOn, onEdit: edit)
+            case .timeline: BirthdayTimelineView(store: store, onEdit: edit)
+            case .list: form
+            }
+        }
+    }
+
+    private func addOn(_ date: Date) {
+        let p = CalendarService.ymd(date, .jalali)
+        draft = Birthday(name: "", calendar: .jalali, month: p.month, day: p.day)
+        editingID = nil
+        mode = .list
+    }
+
+    private func edit(_ b: Birthday) {
+        draft = b
+        editingID = b.id
+        mode = .list
+    }
+
+    private var form: some View {
         Form {
             Section(editingID == nil ? "Add a birthday" : "Edit birthday") {
                 TextField("Name", text: $draft.name)

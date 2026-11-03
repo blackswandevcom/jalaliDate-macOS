@@ -26,14 +26,22 @@ struct PopoverView: View {
                 if layout.arrangement == .sideBySide {
                     wideBody(layout, theme: theme)
                 } else {
-                    ForEach(layout.sections.filter(\.visible)) { cfg in
-                        section(cfg.section, theme: theme)
+                    ForEach(shownSections(layout), id: \.self) { s in
+                        section(s, theme: theme)
                     }
                 }
-                Divider()
-                PopoverFooter(model: model)
+                if layout.showFooter {
+                    Divider()
+                    PopoverFooter(model: model)
+                }
             }
             .padding(14)
+            // With the button bar hidden, its shortcuts (⌘E, ⌘D, ⌘,, ⌘Q) keep working.
+            .background {
+                if !layout.showFooter {
+                    PopoverFooter(model: model).opacity(0).frame(width: 0, height: 0).clipped().allowsHitTesting(false)
+                }
+            }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollIndicators(contentHeight > maxHeight ? .automatic : .hidden)
@@ -49,13 +57,19 @@ struct PopoverView: View {
         .focusEffectDisabled()
     }
 
+    /// Visible sections; the day's events panel steps aside when the header shows the events.
+    private func shownSections(_ layout: PopoverLayout) -> [PopoverSection] {
+        let inHeader = layout.isVisible(.hero) && layout.header.visible(.events)
+        return layout.sections.filter(\.visible).map(\.section).filter { !(inHeader && $0 == .dayEvents) }
+    }
+
     private static let sideSections: Set<PopoverSection> = [.calendar, .dayEvents, .upcoming]
 
     /// Wide layout: header/widgets keep their full-width rows; the calendar and the day's events
     /// (plus Upcoming) sit next to each other where the first of them appears in the order.
     @ViewBuilder
     private func wideBody(_ layout: PopoverLayout, theme: ResolvedTheme) -> some View {
-        let visible = layout.sections.filter(\.visible).map(\.section)
+        let visible = shownSections(layout)
         let firstSide = visible.firstIndex { Self.sideSections.contains($0) }
         ForEach(Array(visible.enumerated()), id: \.offset) { i, s in
             if !Self.sideSections.contains(s) {
@@ -91,7 +105,9 @@ struct PopoverView: View {
         switch s {
         case .hero:
             HeroView(date: model.selectedDay, now: model.now, theme: theme, weather: weather,
-                     animated: settings.theme.animated && model.popoverVisible) { model.goToday() }
+                     animated: settings.theme.animated && model.popoverVisible,
+                     header: settings.layout.header,
+                     events: settings.layout.header.visible(.events) ? events.events(on: model.selectedDay) : []) { model.goToday() }
         case .widgets:
             if !settings.layout.widgets.isEmpty {
                 WidgetGrid(model: model, width: settings.layout.effectiveWidth - 28)
@@ -116,50 +132,116 @@ struct HeroView: View {
     let theme: ResolvedTheme
     @ObservedObject var weather: WeatherStore
     let animated: Bool
+    var header = HeaderLayout()
+    /// The day's events, shown under the dates when the header is set to show them.
+    var events: [DayEvent] = []
     var onToday: (() -> Void)? = nil
     @State private var hovering = false
 
     private var isToday: Bool { Calendar(identifier: .gregorian).isDate(date, inSameDayAs: now) }
 
+    private func line(_ item: HeaderItem, _ text: String, weight: Font.Weight = .regular) -> some View {
+        Text(text)
+            .font(.app(size: header.size(item), weight: weight))
+            .foregroundStyle(header.color(item))
+            .lineLimit(1).minimumScaleFactor(0.6)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func eventList(_ list: [DayEvent]) -> some View {
+        let size = header.size(.events)
+        let custom = header.style(.events).color != nil
+        return VStack(alignment: .leading, spacing: 4) {
+            ForEach(list.prefix(4)) { e in
+                HStack(spacing: 6) {
+                    Capsule().fill(e.kind == .holiday || custom ? header.color(.events) : e.color)
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.6), lineWidth: 0.5))
+                        .frame(width: 4, height: size + 1)
+                    Text(e.title)
+                        .font(.app(size: size, weight: e.kind == .holiday ? .semibold : .medium))
+                        .foregroundStyle(header.color(.events))
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    if let t = e.time {
+                        Text(t).font(.app(size: max(8, size - 2)).monospacedDigit())
+                            .foregroundStyle(header.color(.events).opacity(0.8))
+                    }
+                }
+            }
+            if list.count > 4 {
+                Text("و \(CalendarService.persianDigits(list.count - 4)) رویداد دیگر")
+                    .font(.app(size: max(8, size - 2))).foregroundStyle(header.color(.events).opacity(0.8))
+            }
+        }
+        .padding(.horizontal, 9).padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(.black.opacity(0.16)))
+        .environment(\.layoutDirection, .rightToLeft)
+    }
+
     var body: some View {
         let jalali = CalendarService.ymd(date, .jalali)
         let diff = CalendarService.daysFromToday(date, now: now)
+        let h = header
+        let leftEmpty = !h.visible(.gregorianWeekday) && !h.visible(.gregorianDate) && !h.visible(.hijriDate)
+            && !(isToday && h.visible(.weather)) && !(!isToday && h.visible(.backToToday))
 
+        VStack(alignment: .leading, spacing: 10) {
         HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(CalendarService.weekday(date, .gregorian))
-                    .font(.app(size: 13, weight: .semibold))
-                Text(CalendarService.format(date, .gregorian, "d MMMM yyyy", locale: Locale(identifier: "en_US")))
-                    .font(.app(size: 12)).opacity(0.9)
-                Text(CalendarService.format(date, .islamic, "d MMMM yyyy", locale: Locale(identifier: "fa_IR")))
-                    .font(.app(size: 11)).opacity(0.8)
-                if isToday, let w = weather.themeSnapshot, let city = weather.settings.themeCity {
-                    Label("\(weather.format(w.temperature)) \(city.name)", systemImage: w.condition.symbol(isDay: w.isDay))
-                        .font(.app(size: 11, weight: .medium))
-                        .symbolRenderingMode(.multicolor)
-                        .padding(.top, 2)
-                } else if !isToday {
-                    Label("Back to today", systemImage: "arrow.uturn.backward")
-                        .font(.app(size: 10, weight: .semibold))
-                        .padding(.horizontal, 7).padding(.vertical, 2)
-                        .background(Capsule().fill(.white.opacity(hovering ? 0.32 : 0.2)))
-                        .padding(.top, 3)
+            if !leftEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    if h.visible(.gregorianWeekday) {
+                        line(.gregorianWeekday, CalendarService.weekday(date, .gregorian), weight: .semibold)
+                    }
+                    if h.visible(.gregorianDate) {
+                        line(.gregorianDate, CalendarService.format(date, .gregorian, "d MMMM yyyy", locale: Locale(identifier: "en_US")))
+                    }
+                    if h.visible(.hijriDate) {
+                        line(.hijriDate, CalendarService.format(date, .islamic, "d MMMM yyyy", locale: Locale(identifier: "fa_IR")))
+                    }
+                    if isToday, h.visible(.weather), let w = weather.themeSnapshot, let city = weather.settings.themeCity {
+                        Label("\(weather.format(w.temperature)) \(city.name)", systemImage: w.condition.symbol(isDay: w.isDay))
+                            .font(.app(size: h.size(.weather), weight: .medium))
+                            .foregroundStyle(h.color(.weather))
+                            .symbolRenderingMode(h.style(.weather).color == nil ? .multicolor : .monochrome)
+                            .lineLimit(1)
+                            .padding(.top, 2)
+                    } else if !isToday, h.visible(.backToToday) {
+                        Label("Back to today", systemImage: "arrow.uturn.backward")
+                            .font(.app(size: h.size(.backToToday), weight: .semibold))
+                            .foregroundStyle(h.color(.backToToday))
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(Capsule().fill(.white.opacity(hovering ? 0.32 : 0.2)))
+                            .padding(.top, 3)
+                    }
                 }
+                .layoutPriority(1)
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 0) {
-                Text(CalendarService.weekday(date, .jalali))
-                    .font(.app(size: 13, weight: .semibold))
-                Text(CalendarService.format(date, .jalali, "MMMM yyyy", locale: Locale(identifier: "fa_IR")))
-                    .font(.app(size: 12)).opacity(0.9)
-                Text(isToday ? theme.name : persianRelative(diff))
-                    .lineLimit(1).minimumScaleFactor(0.7)
-                    .font(.app(size: isToday ? 9 : 10, weight: .medium)).opacity(isToday ? 0.7 : 0.9).padding(.top, 2)
+                if h.visible(.jalaliWeekday) {
+                    line(.jalaliWeekday, CalendarService.weekday(date, .jalali), weight: .semibold)
+                }
+                if h.visible(.jalaliMonth) {
+                    line(.jalaliMonth, CalendarService.format(date, .jalali, "MMMM yyyy", locale: Locale(identifier: "fa_IR")))
+                }
+                if h.visible(.caption) {
+                    line(.caption, isToday ? theme.name : persianRelative(diff), weight: .medium)
+                        .padding(.top, 2)
+                }
             }
-            Text(CalendarService.persianDigits(jalali.day))
-                .font(.app(size: 42, weight: .bold, design: .rounded))
-                .frame(minWidth: 54)
-                .contentTransition(.numericText())
+            .layoutPriority(1)
+            if h.visible(.dayNumber) {
+                Text(CalendarService.persianDigits(jalali.day))
+                    .font(.app(size: h.size(.dayNumber), weight: .bold, design: .rounded))
+                    .foregroundStyle(h.color(.dayNumber))
+                    .frame(minWidth: h.size(.dayNumber) * 1.28)
+                    .contentTransition(.numericText())
+            }
+        }
+            if h.visible(.events), !events.isEmpty {
+                eventList(events)
+            }
         }
         .foregroundStyle(.white)
         .shadow(color: .black.opacity(0.18), radius: 2, y: 1)

@@ -41,6 +41,10 @@ struct LayoutView: View {
                         ForEach(PopoverLayout.widths, id: \.self) { Text("\(Int($0)) pt").tag($0) }
                     }
                     }
+                    Toggle("Show the button bar at the bottom", isOn: $settings.layout.showFooter)
+                    Toggle("Show the selected day's events in the header", isOn: Binding(
+                        get: { settings.layout.header.visible(.events) },
+                        set: { settings.layout.header[.events].visible = $0 }))
                     Divider()
                     Toggle("Show Gregorian day under each date", isOn: $settings.layout.cellGregorian)
                     Toggle("Show Hijri day under each date", isOn: $settings.layout.cellHijri)
@@ -58,7 +62,7 @@ struct LayoutView: View {
                 } header: {
                     Text("Sections")
                 } footer: {
-                    Text("Drag to reorder, switch off to hide. The footer buttons are always shown.").font(.app(.caption)).foregroundStyle(.secondary)
+                    Text("Drag to reorder, switch off to hide. Without the button bar, right-click the date in the menu bar for Settings and Quit; the shortcuts ⌘E, ⌘D, ⌘, and ⌘Q still work in the popover.").font(.app(.caption)).foregroundStyle(.secondary)
                 }
 
                 Section {
@@ -83,6 +87,11 @@ struct LayoutView: View {
                         .onMove { settings.layout.widgets.move(fromOffsets: $0, toOffset: $1) }
                     }
                     .frame(height: max(40, CGFloat(settings.layout.widgets.count) * 32 + 8))
+                    Picker("Date tiles", selection: $settings.layout.compactDates) {
+                        Text("Cards").tag(false)
+                        Text("One line").tag(true)
+                    }
+                    .pickerStyle(.segmented)
                 } header: {
                     Text("Widgets")
                 } footer: {
@@ -199,9 +208,27 @@ struct ThemeView: View {
             Section {
                 HeroView(date: model.now, now: model.now,
                          theme: ThemeResolver.resolve(settings.theme, date: model.now, weather: model.weather.themeSnapshot),
-                         weather: model.weather, animated: settings.theme.animated)
-                    .frame(maxWidth: 380)
+                         weather: model.weather, animated: settings.theme.animated,
+                         header: settings.layout.header,
+                         events: settings.layout.header.visible(.events) ? model.events.events(on: model.now) : [])
+                    .frame(width: 360)
                     .frame(maxWidth: .infinity)
+            }
+
+            Section {
+                ForEach(HeaderItem.allCases) { item in
+                    HeaderItemRow(item: item, style: Binding(
+                        get: { settings.layout.header[item] },
+                        set: { settings.layout.header[item] = $0 }))
+                }
+                HStack {
+                    Spacer()
+                    Button("Reset header") { settings.layout.headerRaw = nil }.controlSize(.small)
+                }
+            } header: {
+                Text("Header contents")
+            } footer: {
+                caption("Show or hide each line of the header, and set its size and color. Weather shows on today; “Back to today” shows when another day is picked in the calendar. With “The day's events” on, the events of the picked day show in the header instead of the panel under the calendar.")
             }
 
             Section("Header theme") {
@@ -337,12 +364,12 @@ struct ThemeView: View {
             Section {
                 Toggle("Custom popover background", isOn: $glass.popover.enabled)
                 if glass.popover.enabled {
-                    GlassControls(style: $glass.popover)
+                    GlassControls(style: $glass.popover, showsSurface: true)
                 }
             } header: {
                 Text("Popover background")
             } footer: {
-                caption("Like Terminal's window background: pick a color, how much of it covers the popover, and how blurred the desktop behind it is. Low opacity and low blur make the popover see-through.")
+                caption("Like Terminal's window background: pick a color, how much of it covers the popover, and how blurred the desktop behind it is. Low opacity and low blur make the popover see-through. Liquid Glass keeps the macOS 26 glass edges and blurs the desktop the way Terminal does; Classic is the older frosted look. The Terminal preset matches Terminal's Pro profile.")
             }
         }
         .formStyle(.grouped)
@@ -511,12 +538,67 @@ struct ThemeView: View {
     }
 }
 
+/// One header line: on/off, size and colour.
+struct HeaderItemRow: View {
+    let item: HeaderItem
+    @Binding var style: HeaderItemStyle
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Toggle(item.title, isOn: $style.visible)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Group {
+                Slider(value: Binding(get: { style.size ?? item.defaultSize },
+                                      set: { style.size = $0 == item.defaultSize ? nil : $0 }),
+                       in: item.sizeRange, step: 1)
+                    .frame(width: 110)
+                Text("\(Int(style.size ?? item.defaultSize)) pt")
+                    .font(.app(.caption).monospacedDigit()).frame(width: 36, alignment: .trailing)
+                ColorPicker("", selection: Binding(get: { style.color.map { Color(hex: $0) } ?? .white },
+                                                   set: { style.color = $0.hexString }),
+                            supportsOpacity: false)
+                    .labelsHidden()
+                Button {
+                    style.color = nil; style.size = nil
+                } label: { Image(systemName: "arrow.counterclockwise") }
+                    .buttonStyle(.borderless)
+                    .help("Default size and color")
+                    .opacity(style.color == nil && style.size == nil ? 0 : 1)
+                    .disabled(style.color == nil && style.size == nil)
+            }
+            .disabled(!style.visible)
+        }
+    }
+}
+
 /// Color, opacity, blur and text controls shared by the popover and the widgets.
 struct GlassControls: View {
     @Binding var style: GlassStyle
     var blurNote: String? = nil
+    /// The popover can use Liquid Glass; the desktop widgets can't.
+    var showsSurface = false
 
     var body: some View {
+        LabeledContent("Preset") {
+            HStack(spacing: 6) {
+                ForEach(Self.presets, id: \.0) { title, preset in
+                    Button {
+                        var p = preset
+                        p.enabled = style.enabled
+                        style = p
+                    } label: {
+                        Label(title, systemImage: "checkmark").labelStyle(PresetLabelStyle(selected: matches(preset)))
+                    }
+                    .controlSize(.small)
+                }
+            }
+        }
+        if showsSurface && GlassSurface.supportsLiquid {
+            Picker("Material", selection: $style.surface) {
+                ForEach(GlassSurface.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        }
         ColorPicker("Color", selection: Binding(get: { style.tintColor }, set: { style.tint = $0.hexString }), supportsOpacity: false)
         LabeledContent("Opacity") {
             HStack {
@@ -534,20 +616,34 @@ struct GlassControls: View {
         Picker("Text", selection: $style.text) {
             ForEach(GlassText.allCases) { Text($0.title).tag($0) }
         }
-        HStack {
-            Spacer()
-            ForEach(Self.presets, id: \.0) { title, preset in
-                Button(title) { var p = preset; p.enabled = style.enabled; style = p }.controlSize(.small)
-            }
-        }
+    }
+
+    /// The current settings are this preset (sliders within half a percent).
+    private func matches(_ p: GlassStyle) -> Bool {
+        style.tint.uppercased() == p.tint.uppercased() && abs(style.opacity - p.opacity) < 0.005
+            && abs(style.blur - p.blur) < 0.005 && style.text == p.text
+            && (!showsSurface || style.surface == p.surface)
     }
 
     static let presets: [(String, GlassStyle)] = [
+        // Terminal's "Pro" profile: black at 71%, blur 75%.
+        ("Terminal", GlassStyle(enabled: true, tint: "#000000", opacity: 0.71, blur: 0.75, text: .light, surfaceRaw: .liquid)),
         ("Clear", GlassStyle(enabled: true, tint: "#000000", opacity: 0.0, blur: 0.0, text: .auto)),
         ("Frosted", GlassStyle(enabled: true, tint: "#FFFFFF", opacity: 0.15, blur: 1, text: .auto)),
         ("Smoke", GlassStyle(enabled: true, tint: "#0F172A", opacity: 0.55, blur: 0.5, text: .light)),
         ("Paper", GlassStyle(enabled: true, tint: "#FAF7F0", opacity: 0.85, blur: 0.6, text: .dark)),
     ]
+}
+
+/// Preset button title, with a check mark on the one in use.
+private struct PresetLabelStyle: LabelStyle {
+    var selected: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 3) {
+            if selected { configuration.icon.font(.system(size: 9, weight: .bold)) }
+            configuration.title
+        }
+    }
 }
 
 // MARK: - Menubar icon

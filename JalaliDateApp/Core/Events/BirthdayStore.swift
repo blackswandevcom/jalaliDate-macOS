@@ -38,7 +38,14 @@ final class BirthdayStore: ObservableObject {
     @Published var settings: BirthdaySettings { didSet { Prefs.save(settings, Prefs.birthdaySettingsKey) } }
     @Published private(set) var contactsStatus = CNContactStore.authorizationStatus(for: .contacts)
 
-    var all: [Birthday] { manual + (settings.useContacts ? contacts : []) }
+    /// Your list plus Contacts, without the copies that synced accounts (iCloud, Google…) leave in Contacts.
+    var all: [Birthday] {
+        var seen = Set<String>()
+        return (manual + (settings.useContacts ? contacts : [])).filter { b in
+            let key = "\(b.name.lowercased().trimmingCharacters(in: .whitespaces))|\(b.calendar.rawValue)|\(b.month)|\(b.day)"
+            return seen.insert(key).inserted
+        }
+    }
 
     init() {
         manual = Prefs.load([Birthday].self, Prefs.birthdaysKey) ?? []
