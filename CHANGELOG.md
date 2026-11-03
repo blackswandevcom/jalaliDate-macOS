@@ -2,6 +2,9 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.3 — 2026-11-03 · 1405-08-12
+- The popover opens on top of full-screen apps (Firefox, Safari, videos) in their own Space, instead of only showing after you leave full screen
+
 ## v8.2 — 2026-11-03 · 1405-08-12
 - The Jalali, Gregorian and Hijri date tiles follow the day you click in the calendar, and clicking one (or ⌘C, ⌘X, ⌘A) copies that day's date
 - Header contents: show or hide each line of the header (weekdays, Gregorian and Hijri dates, weather, the day number and more) and set each one's size and color

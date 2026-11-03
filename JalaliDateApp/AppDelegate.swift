@@ -249,8 +249,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         } else {
             tick()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            // Open on top of a full-screen app (Firefox, Safari, a video…) in its own Space,
+            // instead of switching to the desktop where jDate's other windows live.
+            let window = popover.contentViewController?.view.window
+            window?.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+            window?.makeKeyAndOrderFront(nil)
             NSApp.activate()
-            popover.contentViewController?.view.window?.makeKey()
+            window?.makeKey()
         }
     }
 
