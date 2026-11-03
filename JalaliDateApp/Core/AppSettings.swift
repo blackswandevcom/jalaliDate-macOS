@@ -268,7 +268,7 @@ final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     @Published var icon: IconConfig { didSet { Prefs.save(icon, Prefs.iconConfigKey) } }
-    @Published var theme: ThemeConfig { didSet { Prefs.save(theme, Prefs.themeKey) } }
+    @Published var theme: ThemeConfig { didSet { Prefs.save(theme, Prefs.themeKey); DayColors.update(theme) } }
     @Published var layout: PopoverLayout { didSet { Prefs.save(layout, Prefs.layoutKey) } }
     @Published var general: GeneralSettings { didSet { Prefs.save(general, Prefs.generalKey) } }
 
@@ -278,6 +278,7 @@ final class AppSettings: ObservableObject {
         theme = Prefs.load(ThemeConfig.self, Prefs.themeKey) ?? ThemeConfig()
         layout = Prefs.load(PopoverLayout.self, Prefs.layoutKey) ?? PopoverLayout()
         general = Prefs.load(GeneralSettings.self, Prefs.generalKey) ?? GeneralSettings()
+        DayColors.update(theme)
         // Make sure sections added in later versions appear.
         for s in PopoverSection.allCases where !layout.sections.contains(where: { $0.section == s }) {
             layout.sections.append(SectionConfig(section: s, visible: false))

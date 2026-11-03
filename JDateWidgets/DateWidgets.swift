@@ -74,6 +74,7 @@ struct TodayView: View {
     }
     private var events: [WidgetEvent] { cfg.showEvents ? WidgetData.events(on: entry.date, cache: entry.cache) : [] }
     private var holiday: Bool { WidgetData.isHoliday(entry.date, cache: entry.cache) }
+    private var isEventHoliday: Bool { WidgetData.events(on: entry.date, cache: entry.cache).contains(where: \.holiday) }
     private var persian: Bool { cfg.persianDigits && main != .gregorian }
 
     var body: some View {
@@ -84,14 +85,14 @@ struct TodayView: View {
             default: medium
             }
         }
-        .widgetBackground(theme)
+        .widgetBackground(theme, glass: cfg.style.glass)
     }
 
     private var bigDay: some View {
         let p = CalendarService.ymd(entry.date, main)
         return Text(WidgetData.digits(p.day, persian))
             .font(.app(size: family == .systemSmall ? 46 : 56, weight: .bold, design: .rounded))
-            .foregroundStyle(theme == nil && holiday ? Color.red : (theme == nil ? Color.primary : Color.white))
+            .foregroundStyle(theme == nil && holiday ? (DayColors.color(holiday: isEventHoliday, date: entry.date) ?? .primary) : (theme == nil ? Color.primary : Color.white))
             .widgetAccentable()
             .minimumScaleFactor(0.6)
     }
@@ -121,7 +122,7 @@ struct TodayView: View {
 
     private var small: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack { weekday; Spacer(); if holiday { Image(systemName: "flag.fill").font(.app(.caption2)).foregroundStyle(theme == nil ? .red : .white) } }
+            HStack { weekday; Spacer(); if holiday { Image(systemName: "flag.fill").font(.app(.caption2)).foregroundStyle(theme == nil ? DayColors.holiday : .white) } }
             bigDay.padding(.vertical, -4)
             monthLine
             Spacer(minLength: 2)
@@ -192,7 +193,7 @@ struct MonthWidget: Widget {
             MonthWidgetView(entry: entry)
         }
         .configurationDisplayName("Month")
-        .description("The Jalali or Gregorian month, holidays in red.")
+        .description("The Jalali or Gregorian month, with holidays and weekends in your colors.")
         .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
@@ -236,7 +237,7 @@ struct MonthWidgetView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .widgetBackground(theme)
+        .widgetBackground(theme, glass: cfg.style.glass)
     }
 }
 
@@ -259,7 +260,6 @@ struct MonthGrid: View {
         // Jalali weeks start on Saturday, Gregorian on Monday.
         let leading = kind == .jalali ? weekday % 7 : (weekday + 5) % 7
         let headers = kind == .jalali ? ["ش", "ی", "د", "س", "چ", "پ", "ج"] : ["M", "T", "W", "T", "F", "S", "S"]
-        let fridayCol = kind == .jalali ? 6 : 4
         let rows = Int(ceil(Double(leading + days) / 7))
         let g = Calendar(identifier: .gregorian)
         let today = g.startOfDay(for: date)
@@ -276,7 +276,7 @@ struct MonthGrid: View {
                 GridRow {
                     ForEach(0..<7, id: \.self) { i in
                         Text(headers[i]).font(.app(size: 9, weight: .medium))
-                            .foregroundStyle(i == fridayCol && !onTheme ? Color.red : Color.secondary)
+                            .foregroundStyle(DayColors.isWeekend(weekday: DayColors.weekday(column: i, jalali: kind == .jalali)) && !onTheme ? DayColors.weekend : Color.secondary)
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -286,7 +286,7 @@ struct MonthGrid: View {
                             let idx = r * 7 + c - leading
                             if idx >= 0 && idx < days, let d = g.date(byAdding: .day, value: idx, to: start) {
                                 let isToday = g.isDate(d, inSameDayAs: today)
-                                let red = WidgetData.isHoliday(d, cache: cache)
+                                let dayColor = DayColors.color(holiday: WidgetData.events(on: d, cache: cache).contains(where: \.holiday), date: d)
                                 VStack(spacing: 0) {
                                     Text(WidgetData.digits(idx + 1, persian))
                                         .font(.app(size: compact ? 10 : 12, weight: isToday ? .bold : .regular))
@@ -295,7 +295,7 @@ struct MonthGrid: View {
                                             .font(.app(size: 7)).opacity(0.55)
                                     }
                                 }
-                                .foregroundStyle(isToday ? (onTheme ? Color.black : Color.white) : (red && !onTheme ? Color.red : (onTheme ? Color.white : Color.primary)))
+                                .foregroundStyle(isToday ? (onTheme ? Color.black : Color.white) : (dayColor != nil && !onTheme ? dayColor! : (onTheme ? Color.white : Color.primary)))
                                 .frame(maxWidth: .infinity).frame(height: compact ? 16 : (secondary ? 34 : 30))
                                 .background {
                                     if isToday {
@@ -304,7 +304,7 @@ struct MonthGrid: View {
                                     }
                                 }
                                 .overlay(alignment: .bottom) {
-                                    if red && onTheme && !isToday { Circle().fill(.white).frame(width: 2.5, height: 2.5).offset(y: 1) }
+                                    if dayColor != nil && onTheme && !isToday { Circle().fill(.white).frame(width: 2.5, height: 2.5).offset(y: 1) }
                                 }
                             } else {
                                 Color.clear.frame(maxWidth: .infinity).frame(height: compact ? 16 : (secondary ? 34 : 30))

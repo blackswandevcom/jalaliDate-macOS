@@ -65,7 +65,17 @@ final class AppModel: ObservableObject {
     @Published var converterDate = Date()
     /// Day picked in the popover calendar.
     @Published var selectedDay = Date()
+    /// Month shown in the popover calendar, relative to the current Jalali month.
+    @Published var monthOffset = 0
     @Published var popoverVisible = false
+
+    var isTodaySelected: Bool { Calendar(identifier: .gregorian).isDate(selectedDay, inSameDayAs: now) }
+
+    /// Back to today in the header and the month calendar.
+    func goToday() {
+        monthOffset = 0
+        selectedDay = now
+    }
 
     let settings = AppSettings.shared
     let birthdays: BirthdayStore
@@ -82,7 +92,7 @@ final class AppModel: ObservableObject {
     }
 
     static var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.1"
     }
 
     static var buildNumber: String {

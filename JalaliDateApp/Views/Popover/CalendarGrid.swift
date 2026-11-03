@@ -4,7 +4,11 @@ struct CalendarGrid: View {
     @ObservedObject var model: AppModel
     @ObservedObject var events: EventStore
     let theme: ResolvedTheme
-    @State private var monthOffset = 0
+
+    private var monthOffset: Int {
+        get { model.monthOffset }
+        nonmutating set { model.monthOffset = newValue }
+    }
 
     private let cal = CalendarKind.jalali.calendar
     private let weekdayInitials = ["ش", "ی", "د", "س", "چ", "پ", "ج"] // Saturday first
@@ -58,7 +62,7 @@ struct CalendarGrid: View {
                     if cell < 7 {
                         Text(weekdayInitials[cell])
                             .font(.app(size: 11, weight: .medium))
-                            .foregroundStyle(cell == 6 ? Color.red : Color.secondary)
+                            .foregroundStyle(DayColors.isWeekend(weekday: DayColors.weekday(column: cell, jalali: true)) ? DayColors.weekend : Color.secondary)
                             .frame(maxWidth: .infinity)
                     } else if cell < 7 + leading {
                         Color.clear.frame(height: 20)
@@ -82,10 +86,7 @@ struct CalendarGrid: View {
         }
     }
 
-    private func goToday() {
-        monthOffset = 0
-        model.selectedDay = model.now
-    }
+    private func goToday() { model.goToday() }
 
     private func hijriSpan(_ first: Date, _ last: Date) -> String {
         let fa = Locale(identifier: "fa_IR")
@@ -124,7 +125,7 @@ private struct DayCell: View {
     @State private var hovering = false
 
     var body: some View {
-        let red = CalendarService.isFriday(date) || marks.holiday
+        let dayColor = DayColors.color(holiday: marks.holiday, date: date)
         Button(action: action) {
             VStack(spacing: 0) {
                 Text(CalendarService.persianDigits(day))
@@ -148,11 +149,11 @@ private struct DayCell: View {
                 }
                 .frame(height: 4)
             }
-            .foregroundStyle(isToday ? Color.white : (red ? Color.red : Color.primary))
+            .foregroundStyle(isToday ? Color.white : (dayColor ?? Color.primary))
             .frame(maxWidth: .infinity, minHeight: style.dayFont + (style.gregorian || style.hijri ? style.secondaryFont + 12 : 10))
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(isToday ? accent : (red && marks.holiday ? Color.red.opacity(0.08) : Color.primary.opacity(hovering ? 0.08 : 0)))
+                    .fill(isToday ? accent : (marks.holiday ? DayColors.holiday.opacity(0.1) : Color.primary.opacity(hovering ? 0.08 : 0)))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -177,34 +178,34 @@ func persianRelative(_ diff: Int) -> String {
 struct DayEventsPanel: View {
     @ObservedObject var model: AppModel
     @ObservedObject var events: EventStore
+    /// Shows the date line too, for layouts where the header is hidden.
+    var showsDate = false
 
     var body: some View {
         let _ = events.revision
         let day = model.selectedDay
         let list = events.events(on: day)
-        let diff = CalendarService.daysFromToday(day, now: model.now)
 
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
+            if showsDate {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(CalendarService.long(day, .jalali)).font(.app(size: 13, weight: .semibold))
                     Text("\(CalendarService.format(day, .islamic, "d MMMM", locale: Locale(identifier: "fa_IR"))) · \(CalendarService.format(day, .gregorian, "EEE d MMM yyyy", locale: Locale(identifier: "en_US")))")
                         .font(.app(size: 10)).foregroundStyle(.secondary)
                 }
-                Spacer()
-                if diff != 0 {
-                    Text(persianRelative(diff)).font(.app(size: 10)).foregroundStyle(.secondary)
-                }
-                Button { model.openConverter(at: day) } label: { Image(systemName: "arrow.left.arrow.right") }
-                    .buttonStyle(.borderless).help("Open in converter")
             }
-            if list.isEmpty {
-                Text(CalendarService.isFriday(day) ? "تعطیل آخر هفته" : "رویدادی ثبت نشده")
-                    .font(.app(size: 11)).foregroundStyle(.tertiary)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(list) { e in EventRow(event: e) }
+            HStack(alignment: .top, spacing: 6) {
+                if list.isEmpty {
+                    Text(DayColors.isWeekend(day) ? "تعطیل آخر هفته" : "رویدادی ثبت نشده")
+                        .font(.app(size: 11)).foregroundStyle(.tertiary)
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(list) { e in EventRow(event: e) }
+                    }
                 }
+                Spacer(minLength: 0)
+                Button { model.openConverter(at: day) } label: { Image(systemName: "arrow.left.arrow.right").font(.app(size: 11)) }
+                    .buttonStyle(.borderless).foregroundStyle(.secondary).help("Open this day in the converter")
             }
         }
         .padding(10)
@@ -222,7 +223,7 @@ struct EventRow: View {
             RoundedRectangle(cornerRadius: 1.5).fill(event.color).frame(width: 3, height: 12)
             VStack(alignment: .leading, spacing: 0) {
                 Text(event.title).font(.app(size: 12, weight: event.kind == .holiday ? .semibold : .regular))
-                    .foregroundStyle(event.kind == .holiday ? Color.red : Color.primary)
+                    .foregroundStyle(event.kind == .holiday ? DayColors.holiday : Color.primary)
                     .lineLimit(2)
                 if let sub = event.subtitle {
                     Text(sub).font(.app(size: 9)).foregroundStyle(.secondary).lineLimit(1)

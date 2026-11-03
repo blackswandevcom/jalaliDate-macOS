@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/blackswandevcom/jalaliDate-macOS/releases">
-    <img src="docs/download-button.svg" width="420" alt="Download jDate 8.0 for macOS">
+    <img src="docs/download-button.svg" width="420" alt="Download jDate 8.1 for macOS">
   </a>
 </p>
 
@@ -49,7 +49,10 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 - **Weather** with a 5–7 day forecast — Open-Meteo, MET Norway, wttr.in, OpenWeatherMap or WeatherAPI.com.
 - **World clocks**, countdowns and an upcoming-events list as popover widgets in full, half or one-third width.
 - **Two layouts** — the classic stacked popover, or a wide one with the calendar and events side by side.
-- **Themes** — seasons, live weather, presets or your own colors, with optional rain/snow/leaf animation.
+- **Themes** — seasons, live weather, presets, your own colors, 13 animated styles, or your own photo or looping muted video.
+- **Occasion themes** — Nowruz, Chaharshanbe Suri, Sizdah Bedar, Yalda, Ramadan, Eid al-Fitr, Eid al-Adha, Muharram, Christmas, New Year's Eve, 4th of July, Halloween and Valentine's Day switch on by themselves on their days.
+- **Glass background** — color, opacity and blur for the popover and the desktop widgets, like Terminal's window background.
+- **Holiday and weekend colors** — pick both colors and which days are the weekend.
 - **Menubar icon designer** — shapes, colors and your own date format.
 - **Desktop & Notification Center widgets** — Today, Month, World Clock, Upcoming, Weather and Countdown.
 - **Any font on your Mac** — Persian fonts listed first, with a size control.
@@ -57,12 +60,23 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 
 ## Screenshots
 
+<p align="center">
+  <img src="docs/screenshots/occasion-headers.png" width="820" alt="Occasion headers: Nowruz, Ramadan, Christmas, 4th of July, Chaharshanbe Suri and Yalda">
+</p>
+
 <table>
   <tr>
     <td width="40%"><img src="docs/screenshots/popover.png" alt="Popover with seasonal theme, widgets and calendar"></td>
     <td>
       <img src="docs/screenshots/converter.png" alt="Date converter"><br><br>
       <img src="docs/screenshots/themes.png" alt="Themes">
+    </td>
+  </tr>
+  <tr>
+    <td width="40%"><img src="docs/screenshots/popover-glass.png" alt="See-through popover with the lava lamp header and a picked day"></td>
+    <td>
+      <img src="docs/screenshots/theme-occasions.png" alt="Occasion themes"><br><br>
+      <img src="docs/screenshots/widgets-glass.png" alt="Glass background for the widgets">
     </td>
   </tr>
   <tr>
@@ -83,8 +97,10 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 
 ## What's new
 
-See the **[changelog](CHANGELOG.md)**. Version 8.0 is the biggest update yet: events, birthdays, weather, world clocks,
-themes, widgets, fonts, a wide layout and a new icon — a calendar page showing **۱۳ آبان ۱۴۰۳**, the day jDate was first released.
+See the **[changelog](CHANGELOG.md)**. Version 8.1 adds occasion themes (Nowruz, Ramadan, Christmas, 4th of July and more),
+animated and photo/video headers, a Terminal-style glass background for the popover and widgets, your own holiday and weekend
+colors, and a header that shows the day you click. Version 8.0 brought events, birthdays, weather, world clocks, widgets, fonts,
+a wide layout and the new icon — a calendar page showing **۱۳ آبان ۱۴۰۳**, the day jDate was first released.
 
 ## Build from source
 

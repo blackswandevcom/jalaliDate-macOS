@@ -102,6 +102,6 @@ enum IranianEvents {
     }
 
     static func isHoliday(_ date: Date, options: Options = Options()) -> Bool {
-        CalendarService.isFriday(date) || events(on: date, options: options).contains { $0.holiday }
+        DayColors.isWeekend(date) || events(on: date, options: options).contains { $0.holiday }
     }
 }

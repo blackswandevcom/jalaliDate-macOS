@@ -5,6 +5,7 @@ struct PopoverView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var events: EventStore
     @ObservedObject var weather: WeatherStore
+    @ObservedObject var glass = GlassSettings.shared
     @State private var contentHeight: CGFloat = 500
 
     init(model: AppModel) {
@@ -37,6 +38,12 @@ struct PopoverView: View {
         }
         .scrollIndicators(contentHeight > maxHeight ? .automatic : .hidden)
         .frame(width: layout.effectiveWidth, height: min(contentHeight, maxHeight))
+        .background {
+            if glass.popover.enabled {
+                glass.popover.tintColor.opacity(glass.popover.opacity).ignoresSafeArea()
+            }
+        }
+        .glassScheme(glass.popover.enabled ? glass.popover : nil)
         .tint(theme.accent)
         // No blue keyboard-focus ring around the first tile when the popover opens.
         .focusEffectDisabled()
@@ -83,7 +90,8 @@ struct PopoverView: View {
     private func section(_ s: PopoverSection, theme: ResolvedTheme) -> some View {
         switch s {
         case .hero:
-            HeroView(now: model.now, theme: theme, weather: weather, animated: settings.theme.animated && model.popoverVisible)
+            HeroView(date: model.selectedDay, now: model.now, theme: theme, weather: weather,
+                     animated: settings.theme.animated && model.popoverVisible) { model.goToday() }
         case .widgets:
             if !settings.layout.widgets.isEmpty {
                 WidgetGrid(model: model, width: settings.layout.effectiveWidth - 28)
@@ -91,7 +99,7 @@ struct PopoverView: View {
         case .calendar:
             CalendarGrid(model: model, events: events, theme: theme)
         case .dayEvents:
-            DayEventsPanel(model: model, events: events)
+            DayEventsPanel(model: model, events: events, showsDate: !settings.layout.isVisible(.hero))
         case .upcoming:
             UpcomingList(model: model, events: events)
         }
@@ -100,62 +108,89 @@ struct PopoverView: View {
 
 // MARK: - Hero
 
+/// The coloured header. Shows the day picked in the calendar; click it to go back to today.
 struct HeroView: View {
+    /// The day shown (today, or the day picked in the calendar).
+    let date: Date
     let now: Date
     let theme: ResolvedTheme
     @ObservedObject var weather: WeatherStore
     let animated: Bool
+    var onToday: (() -> Void)? = nil
+    @State private var hovering = false
+
+    private var isToday: Bool { Calendar(identifier: .gregorian).isDate(date, inSameDayAs: now) }
 
     var body: some View {
-        let jalali = CalendarService.ymd(now, .jalali)
+        let jalali = CalendarService.ymd(date, .jalali)
+        let diff = CalendarService.daysFromToday(date, now: now)
 
         HStack(alignment: .center, spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(CalendarService.weekday(now, .gregorian))
+                Text(CalendarService.weekday(date, .gregorian))
                     .font(.app(size: 13, weight: .semibold))
-                Text(CalendarService.format(now, .gregorian, "d MMMM yyyy", locale: Locale(identifier: "en_US")))
+                Text(CalendarService.format(date, .gregorian, "d MMMM yyyy", locale: Locale(identifier: "en_US")))
                     .font(.app(size: 12)).opacity(0.9)
-                Text(CalendarService.format(now, .islamic, "d MMMM yyyy", locale: Locale(identifier: "fa_IR")))
+                Text(CalendarService.format(date, .islamic, "d MMMM yyyy", locale: Locale(identifier: "fa_IR")))
                     .font(.app(size: 11)).opacity(0.8)
-                if let w = weather.themeSnapshot, let city = weather.settings.themeCity {
+                if isToday, let w = weather.themeSnapshot, let city = weather.settings.themeCity {
                     Label("\(weather.format(w.temperature)) \(city.name)", systemImage: w.condition.symbol(isDay: w.isDay))
                         .font(.app(size: 11, weight: .medium))
                         .symbolRenderingMode(.multicolor)
                         .padding(.top, 2)
+                } else if !isToday {
+                    Label("Back to today", systemImage: "arrow.uturn.backward")
+                        .font(.app(size: 10, weight: .semibold))
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(Capsule().fill(.white.opacity(hovering ? 0.32 : 0.2)))
+                        .padding(.top, 3)
                 }
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 0) {
-                Text(CalendarService.weekday(now, .jalali))
+                Text(CalendarService.weekday(date, .jalali))
                     .font(.app(size: 13, weight: .semibold))
-                Text(CalendarService.format(now, .jalali, "MMMM yyyy", locale: Locale(identifier: "fa_IR")))
+                Text(CalendarService.format(date, .jalali, "MMMM yyyy", locale: Locale(identifier: "fa_IR")))
                     .font(.app(size: 12)).opacity(0.9)
-                Text(theme.name).font(.app(size: 9, weight: .medium)).opacity(0.7).padding(.top, 2)
+                Text(isToday ? theme.name : persianRelative(diff))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .font(.app(size: isToday ? 9 : 10, weight: .medium)).opacity(isToday ? 0.7 : 0.9).padding(.top, 2)
             }
             Text(CalendarService.persianDigits(jalali.day))
                 .font(.app(size: 42, weight: .bold, design: .rounded))
                 .frame(minWidth: 54)
+                .contentTransition(.numericText())
         }
         .foregroundStyle(.white)
-        .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+        .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background {
             ZStack {
-                theme.gradient
-                if let symbol = theme.symbol {
-                    Image(systemName: symbol)
-                        .font(.app(size: 90))
-                        .foregroundStyle(.white.opacity(0.12))
-                        .rotationEffect(.degrees(-12))
-                        .offset(x: -60, y: 18)
-                }
-                if let p = theme.particle {
-                    ParticleLayer(particle: p, paused: !animated)
+                if let effect = theme.effect {
+                    HeaderEffectView(effect: effect, paused: !animated)
+                } else {
+                    theme.gradient
+                    if let symbol = theme.symbol {
+                        Image(systemName: symbol)
+                            .font(.app(size: 90))
+                            .foregroundStyle(.white.opacity(0.12))
+                            .rotationEffect(.degrees(-12))
+                            .offset(x: -60, y: 18)
+                    }
+                    if let p = theme.particle {
+                        ParticleLayer(particle: p, paused: !animated)
+                    }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onTapGesture { withAnimation(.snappy) { onToday?() } }
+        .onHover { hovering = $0 }
+        .help(isToday ? "Today" : "Click to go back to today")
+        .animation(.snappy, value: date)
         .environment(\.layoutDirection, .leftToRight)
     }
 }

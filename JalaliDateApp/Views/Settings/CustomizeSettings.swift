@@ -1,5 +1,6 @@
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Popover layout
 
@@ -189,11 +190,14 @@ struct LayoutView: View {
 struct ThemeView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var settings: AppSettings
+    @ObservedObject var glass = GlassSettings.shared
+    @State private var mediaError: String?
+    @State private var importing = false
 
     var body: some View {
         Form {
             Section {
-                HeroView(now: model.now,
+                HeroView(date: model.now, now: model.now,
                          theme: ThemeResolver.resolve(settings.theme, date: model.now, weather: model.weather.themeSnapshot),
                          weather: model.weather, animated: settings.theme.animated)
                     .frame(maxWidth: 380)
@@ -201,19 +205,32 @@ struct ThemeView: View {
             }
 
             Section("Header theme") {
-                Picker("Style", selection: $settings.theme.mode) {
-                    ForEach(ThemeMode.allCases) { Text($0.title).tag($0) }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
+                    ForEach(ThemeMode.allCases) { mode in
+                        let on = settings.theme.mode == mode
+                        Button { settings.theme.mode = mode } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: mode.symbol).font(.app(size: 16)).frame(height: 20)
+                                Text(mode.title).font(.app(.caption)).lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(on ? Color.accentColor.opacity(0.18) : Color.primary.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(on ? Color.accentColor : .clear, lineWidth: 1.5))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .pickerStyle(.segmented)
                 switch settings.theme.mode {
                 case .season:
-                    Text("Changes with the Persian seasons: spring blossoms, summer saffron, autumn leaves, winter snow.")
-                        .font(.app(.caption)).foregroundStyle(.secondary)
+                    caption("Changes with the Persian seasons: spring blossoms, summer saffron, autumn leaves, winter snow.")
                 case .weather:
-                    Text(model.weather.settings.themeCity == nil
-                         ? "Pick a main city in Weather first."
-                         : "Follows the current weather in \(model.weather.settings.themeCity!.name): clear, cloudy, rain, snow, storm, day and night.")
-                        .font(.app(.caption)).foregroundStyle(.secondary)
+                    caption(model.weather.settings.themeCity == nil
+                            ? "Pick a main city in Weather first."
+                            : "Follows the current weather in \(model.weather.settings.themeCity!.name): clear, cloudy, rain, snow, storm, day and night.")
                     Button("Weather settings…") { model.tab = .weather }
                 case .preset:
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 10) {
@@ -231,20 +248,306 @@ struct ThemeView: View {
                         }
                     }
                 case .custom:
-                    ColorPicker("From", selection: Binding(get: { Color(hex: settings.theme.customA) }, set: { settings.theme.customA = $0.hexString }), supportsOpacity: false)
-                    ColorPicker("To", selection: Binding(get: { Color(hex: settings.theme.customB) }, set: { settings.theme.customB = $0.hexString }), supportsOpacity: false)
+                    ColorPicker("From", selection: hexBinding(\.customA), supportsOpacity: false)
+                    ColorPicker("To", selection: hexBinding(\.customB), supportsOpacity: false)
                 case .accent:
-                    Text("Uses your macOS accent color (System Settings › Appearance).").font(.app(.caption)).foregroundStyle(.secondary)
+                    caption("Uses your macOS accent color (System Settings › Appearance).")
+                case .animated:
+                    animatedControls
+                case .media:
+                    mediaControls
+                case .occasion:
+                    occasionGrid(pick: true)
                 }
             }
 
             Section("Options") {
-                Toggle("Animated effects (rain, snow, leaves…) while the popover is open", isOn: $settings.theme.animated)
-                Toggle("Fridays and holidays in red", isOn: $settings.theme.fridayRed)
+                Toggle("Animate the header while the popover is open", isOn: $settings.theme.animated)
+                Toggle("Red header on Fridays (season, weather, preset and accent styles)", isOn: $settings.theme.fridayRed)
+            }
+
+            Section {
+                Toggle("Switch to occasion themes on their days", isOn: $settings.theme.autoOccasions)
+                if settings.theme.autoOccasions {
+                    ForEach(Occasion.displayOrder) { o in
+                        Toggle(isOn: Binding(
+                            get: { !settings.theme.occasionsOff.contains(o) },
+                            set: { on in
+                                var off = settings.theme.occasionsOff
+                                if on { off.remove(o) } else { off.insert(o) }
+                                settings.theme.occasionsOff = off
+                            })) {
+                            HStack(spacing: 8) {
+                                LinearGradient(colors: o.palette.map { Color(hex: $0) }, startPoint: .leading, endPoint: .trailing)
+                                    .frame(width: 26, height: 14).clipShape(Capsule())
+                                Text(o.title)
+                                Spacer()
+                                Text(o.when).font(.app(.caption)).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Occasions")
+            } footer: {
+                caption("During Nowruz, Yalda, Ramadan, Christmas and the other days below, the header changes to that day's theme, then goes back to your own style. Lunar dates follow your Hijri setting.")
+            }
+
+            Section {
+                ColorPicker("Holidays", selection: hexBinding(\.holidayColor), supportsOpacity: false)
+                ColorPicker("Weekends", selection: hexBinding(\.weekendColor), supportsOpacity: false)
+                LabeledContent("Weekend days") {
+                    HStack(spacing: 4) {
+                        ForEach([7, 1, 2, 3, 4, 5, 6], id: \.self) { wd in
+                            let on = settings.theme.weekendDays.contains(wd)
+                            Button {
+                                var days = settings.theme.weekendDays
+                                if on { days.remove(wd) } else { days.insert(wd) }
+                                settings.theme.weekendDays = days
+                            } label: {
+                                Text(Self.weekdayShort[wd - 1])
+                                    .font(.app(size: 11, weight: on ? .semibold : .regular))
+                                    .frame(width: 34, height: 24)
+                                    .background(RoundedRectangle(cornerRadius: 6).fill(on ? Color(hex: settings.theme.weekendColor).opacity(0.22) : Color.primary.opacity(0.06)))
+                                    .foregroundStyle(on ? Color(hex: settings.theme.weekendColor) : Color.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                HStack {
+                    ForEach(DayColors.presets, id: \.0) { title, days in
+                        Button(title) { settings.theme.weekendDays = days }.controlSize(.small)
+                    }
+                    Spacer()
+                    Button("Reset") {
+                        settings.theme.holidayColorRaw = nil
+                        settings.theme.weekendColorRaw = nil
+                        settings.theme.weekendDaysRaw = nil
+                    }
+                    .controlSize(.small)
+                }
+                dayColorPreview
+            } header: {
+                Text("Holidays & weekends")
+            } footer: {
+                caption("Used in the popover calendar, the events list and the desktop widgets.")
+            }
+
+            Section {
+                Toggle("Custom popover background", isOn: $glass.popover.enabled)
+                if glass.popover.enabled {
+                    GlassControls(style: $glass.popover)
+                }
+            } header: {
+                Text("Popover background")
+            } footer: {
+                caption("Like Terminal's window background: pick a color, how much of it covers the popover, and how blurred the desktop behind it is. Low opacity and low blur make the popover see-through.")
             }
         }
         .formStyle(.grouped)
     }
+
+    static let weekdayShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+    private var dayColorPreview: some View {
+        HStack(spacing: 14) {
+            ForEach([("Normal", Color.primary), ("Weekend", Color(hex: settings.theme.weekendColor)), ("Holiday", Color(hex: settings.theme.holidayColor))], id: \.0) { label, color in
+                VStack(spacing: 2) {
+                    Text(CalendarService.persianDigits(label == "Normal" ? 12 : label == "Weekend" ? 15 : 22))
+                        .font(.app(size: 15, weight: .medium)).foregroundStyle(color)
+                        .frame(width: 34, height: 28)
+                        .background(RoundedRectangle(cornerRadius: 7).fill(label == "Holiday" ? color.opacity(0.1) : .clear))
+                    Text(label).font(.app(.caption2)).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: Occasions
+
+    @ViewBuilder
+    private func occasionGrid(pick: Bool) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+            ForEach(Occasion.displayOrder) { o in
+                let selected = settings.theme.occasion == o
+                Button { settings.theme.occasion = o } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        AnimatedBackground(style: o.style, colors: o.palette.map { Color(hex: $0) },
+                                           speed: o.speed, intensity: o.intensity, paused: !settings.theme.animated)
+                            .frame(height: 52)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(selected ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: selected ? 2.5 : 1))
+                        Text(o.title).font(.app(.caption)).lineLimit(1)
+                        Text(o.when).font(.app(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        caption("Shows the picked occasion all the time. To use them only on their days, keep your usual style and turn on \u{201C}Switch to occasion themes on their days\u{201D} below.")
+    }
+
+    // MARK: Animated
+
+    @ViewBuilder
+    private var animatedControls: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 10)], spacing: 10) {
+            ForEach(AnimatedStyle.allCases) { style in
+                let selected = settings.theme.animStyle == style
+                Button {
+                    settings.theme.animStyle = style
+                    settings.theme.animColorsRaw = nil
+                } label: {
+                    VStack(spacing: 4) {
+                        AnimatedBackground(style: style, colors: (selected ? settings.theme.animColors : style.palette).map { Color(hex: $0) },
+                                           speed: selected ? settings.theme.animSpeed : 1, intensity: selected ? settings.theme.animIntensity : 0.7,
+                                           paused: !settings.theme.animated)
+                            .frame(height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(selected ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: selected ? 2.5 : 1))
+                        Text(style.title).font(.app(.caption)).lineLimit(1)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        caption(settings.theme.animStyle.detail)
+        HStack(spacing: 14) {
+            ForEach(0..<3, id: \.self) { i in
+                ColorPicker(["Base", "Glow", "Detail"][i], selection: Binding(
+                    get: { Color(hex: settings.theme.animColors[safe: i] ?? "#FFFFFF") },
+                    set: { c in
+                        var list = settings.theme.animColors
+                        while list.count < 3 { list.append(list.last ?? "#FFFFFF") }
+                        list[i] = c.hexString
+                        settings.theme.animColors = list
+                    }), supportsOpacity: false)
+            }
+            Spacer()
+            Button("Reset colors") { settings.theme.animColorsRaw = nil }
+                .disabled(settings.theme.animColorsRaw == nil)
+        }
+        LabeledContent("Speed") {
+            Slider(value: $settings.theme.animSpeed, in: 0.2...3) { EmptyView() } minimumValueLabel: { Image(systemName: "tortoise") } maximumValueLabel: { Image(systemName: "hare") }
+        }
+        LabeledContent("Intensity") {
+            Slider(value: $settings.theme.animIntensity, in: 0...1) { EmptyView() } minimumValueLabel: { Image(systemName: "circle.dotted") } maximumValueLabel: { Image(systemName: "circle.hexagongrid.fill") }
+        }
+    }
+
+    // MARK: Photo / video
+
+    @ViewBuilder
+    private var mediaControls: some View {
+        HStack(spacing: 10) {
+            if let url = settings.theme.mediaPosterURL, let image = NSImage(contentsOf: url) {
+                Image(nsImage: image).resizable().scaledToFill()
+                    .frame(width: 96, height: 54)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(settings.theme.mediaFile == nil ? "No photo or video yet"
+                     : settings.theme.mediaKind == .video ? "Video (loops, muted)" : "Photo")
+                    .fontWeight(.medium)
+                caption("Any photo, or a short video (mp4, mov). Videos play muted and loop while the popover is open; widgets show a still frame.")
+            }
+            Spacer()
+            if importing { ProgressView().controlSize(.small) }
+            Button(settings.theme.mediaFile == nil ? "Choose…" : "Replace…", action: pickMedia)
+            if settings.theme.mediaFile != nil {
+                Button("Remove", role: .destructive) {
+                    HeaderMedia.remove(settings.theme.mediaFile)
+                    HeaderMedia.removePoster()
+                    settings.theme.mediaFile = nil
+                    settings.theme.mediaKind = nil
+                }
+            }
+        }
+        if let mediaError { Text(mediaError).font(.app(.caption)).foregroundStyle(.red) }
+        if settings.theme.mediaFile != nil {
+            LabeledContent("Darken for readable text") {
+                Slider(value: $settings.theme.mediaDim, in: 0...0.8)
+            }
+        }
+    }
+
+    private func pickMedia() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image, .movie]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Choose a photo or a short video for the jDate header"
+        guard panel.runModal() == .OK, let src = panel.url else { return }
+        importing = true
+        mediaError = nil
+        Task {
+            defer { importing = false }
+            do {
+                let (name, kind) = try await HeaderMedia.importFile(src)
+                let old = settings.theme.mediaFile
+                settings.theme.mediaFile = name
+                settings.theme.mediaKind = kind
+                settings.theme.mode = .media
+                if old != name { HeaderMedia.remove(old) }
+                MediaCache.clear()
+            } catch {
+                mediaError = error.localizedDescription
+            }
+        }
+    }
+
+    private func hexBinding(_ key: WritableKeyPath<ThemeConfig, String>) -> Binding<Color> {
+        Binding(get: { Color(hex: settings.theme[keyPath: key]) }, set: { settings.theme[keyPath: key] = $0.hexString })
+    }
+
+    private func caption(_ s: String) -> some View {
+        Text(s).font(.app(.caption)).foregroundStyle(.secondary)
+    }
+}
+
+/// Color, opacity, blur and text controls shared by the popover and the widgets.
+struct GlassControls: View {
+    @Binding var style: GlassStyle
+    var blurNote: String? = nil
+
+    var body: some View {
+        ColorPicker("Color", selection: Binding(get: { style.tintColor }, set: { style.tint = $0.hexString }), supportsOpacity: false)
+        LabeledContent("Opacity") {
+            HStack {
+                Slider(value: $style.opacity, in: 0...1)
+                Text("\(Int((style.opacity * 100).rounded()))%").monospacedDigit().frame(width: 40, alignment: .trailing)
+            }
+        }
+        LabeledContent("Blur") {
+            HStack {
+                Slider(value: $style.blur, in: 0...1)
+                Text("\(Int((style.blur * 100).rounded()))%").monospacedDigit().frame(width: 40, alignment: .trailing)
+            }
+        }
+        if let blurNote { Text(blurNote).font(.app(.caption)).foregroundStyle(.secondary) }
+        Picker("Text", selection: $style.text) {
+            ForEach(GlassText.allCases) { Text($0.title).tag($0) }
+        }
+        HStack {
+            Spacer()
+            ForEach(Self.presets, id: \.0) { title, preset in
+                Button(title) { var p = preset; p.enabled = style.enabled; style = p }.controlSize(.small)
+            }
+        }
+    }
+
+    static let presets: [(String, GlassStyle)] = [
+        ("Clear", GlassStyle(enabled: true, tint: "#000000", opacity: 0.0, blur: 0.0, text: .auto)),
+        ("Frosted", GlassStyle(enabled: true, tint: "#FFFFFF", opacity: 0.15, blur: 1, text: .auto)),
+        ("Smoke", GlassStyle(enabled: true, tint: "#0F172A", opacity: 0.55, blur: 0.5, text: .light)),
+        ("Paper", GlassStyle(enabled: true, tint: "#FAF7F0", opacity: 0.85, blur: 0.6, text: .dark)),
+    ]
 }
 
 // MARK: - Menubar icon
@@ -366,9 +669,27 @@ struct IconDesignerView: View {
 // MARK: - Desktop widgets help
 
 struct DesktopWidgetsView: View {
+    @ObservedObject var glass = GlassSettings.shared
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Card {
+                    HStack(alignment: .top, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Glass background", systemImage: "square.on.square.intersection.dashed").font(.app(.headline))
+                            Toggle("Use for all jDate widgets", isOn: $glass.widget.enabled)
+                            Text("Or turn it on per widget: right-click a widget › Edit Widget › Style › Glass.")
+                                .font(.app(.caption)).foregroundStyle(.secondary)
+                            Form {
+                                GlassControls(style: $glass.widget,
+                                              blurNote: "Widgets can't set an exact blur, so the blur picks the nearest system material.")
+                            }
+                            .formStyle(.columns)
+                        }
+                        WidgetGlassPreview(style: glass.widget)
+                    }
+                }
                 Card {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Add jDate to your desktop or Notification Center", systemImage: "rectangle.3.group").font(.app(.headline))
@@ -407,6 +728,37 @@ struct DesktopWidgetsView: View {
         ("Weather", "cloud.sun", "Current weather of your cities as last fetched by jDate."),
         ("Countdown", "hourglass", "Days left until Nowruz, Yalda or any date you choose in any calendar."),
     ]
+}
+
+/// Rough preview of a small widget on the desktop with the glass settings.
+struct WidgetGlassPreview: View {
+    let style: GlassStyle
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(hex: "#0E8FB0"), Color(hex: "#F59E0B"), Color(hex: "#DB2777")],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            Circle().fill(.white.opacity(0.7)).frame(width: 40).offset(x: -40, y: -30)
+            Circle().fill(Color(hex: "#1F4FA8")).frame(width: 60).offset(x: 45, y: 40)
+            VStack(alignment: .trailing, spacing: 2) {
+                let now = Date()
+                Text(CalendarService.weekday(now, .jalali)).font(.app(size: 12, weight: .semibold))
+                Text(CalendarService.persianDigits(CalendarService.ymd(now, .jalali).day)).font(.app(size: 34, weight: .bold, design: .rounded))
+                Text(CalendarService.format(now, .jalali, "MMMM yyyy", locale: Locale(identifier: "fa_IR"))).font(.app(size: 11)).foregroundStyle(.secondary)
+            }
+            .frame(width: 120, height: 120)
+            .background {
+                ZStack {
+                    if let m = style.material { Rectangle().fill(m) }
+                    style.tintColor.opacity(style.opacity)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .glassScheme(style)
+        }
+        .frame(width: 170, height: 170)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
 }
 
 // MARK: - General

@@ -30,11 +30,12 @@ enum MonthCalendarChoice: String, AppEnum {
 }
 
 enum StyleChoice: String, AppEnum {
-    case app, season, weather, plain, turquoise, lapis, pomegranate, pistachio, saffron, rose, classic, graphite, midnight
+    case app, glass, season, weather, plain, turquoise, lapis, pomegranate, pistachio, saffron, rose, classic, graphite, midnight
 
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Style"
     static let caseDisplayRepresentations: [StyleChoice: DisplayRepresentation] = [
         .app: "Same as jDate theme",
+        .glass: "Glass (set in jDate)",
         .season: "Season",
         .weather: "Live weather",
         .plain: "Plain (system)",
@@ -49,12 +50,19 @@ enum StyleChoice: String, AppEnum {
         .midnight: "Midnight",
     ]
 
-    /// nil = plain system background.
+    /// The glass background, when this widget uses it (picked here, or turned on for all widgets in jDate).
+    var glass: GlassStyle? {
+        let g = GlassStyle.widget
+        return self == .glass || g.enabled ? g : nil
+    }
+
+    /// nil = plain system background (or glass).
     func theme(_ date: Date) -> ResolvedTheme? {
+        if glass != nil { return nil }
         let cache = WidgetData.cache
         let weather = cache.weatherCities.first.flatMap { cache.weather[$0.id.uuidString] }
         switch self {
-        case .plain: return nil
+        case .plain, .glass: return nil
         case .app:
             let config = Prefs.load(ThemeConfig.self, Prefs.themeKey) ?? ThemeConfig()
             return ThemeResolver.resolve(config, date: date, weather: weather)
@@ -186,7 +194,7 @@ enum WidgetData {
     }
 
     static func isHoliday(_ date: Date, cache: SharedCache) -> Bool {
-        CalendarService.isFriday(date) || events(on: date, cache: cache).contains(where: \.holiday)
+        DayColors.isWeekend(date) || events(on: date, cache: cache).contains(where: \.holiday)
     }
 
     static func upcoming(days: Int, from now: Date, cache: SharedCache) -> [(Date, [WidgetEvent])] {
@@ -215,16 +223,35 @@ enum WidgetData {
 // MARK: - Shared chrome
 
 extension View {
-    /// Theme gradient (or the system background) as the widget container background.
+    /// Theme gradient, photo, glass or the system background as the widget container background.
     @ViewBuilder
-    func widgetBackground(_ theme: ResolvedTheme?) -> some View {
-        if let theme {
+    func widgetBackground(_ theme: ResolvedTheme?, glass: GlassStyle? = nil) -> some View {
+        if let glass {
             self.containerBackground(for: .widget) {
                 ZStack {
-                    theme.gradient
-                    if let s = theme.symbol {
-                        Image(systemName: s).font(.app(size: 80)).foregroundStyle(.white.opacity(0.10))
-                            .rotationEffect(.degrees(-12)).offset(x: 50, y: 30)
+                    if let m = glass.material { Rectangle().fill(m) }
+                    glass.tintColor.opacity(glass.opacity)
+                }
+            }
+            .glassScheme(glass)
+        } else if let theme {
+            self.containerBackground(for: .widget) {
+                ZStack {
+                    switch theme.effect {
+                    case let .animated(_, colors, _, _):
+                        LinearGradient(colors: colors.isEmpty ? theme.colors : colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                    case let .media(_, _, dim):
+                        theme.gradient
+                        if let image = WidgetPoster.image {
+                            Image(nsImage: image).resizable().scaledToFill()
+                        }
+                        Color.black.opacity(max(dim, 0.15))
+                    case nil:
+                        theme.gradient
+                        if let s = theme.symbol {
+                            Image(systemName: s).font(.app(size: 80)).foregroundStyle(.white.opacity(0.10))
+                                .rotationEffect(.degrees(-12)).offset(x: 50, y: 30)
+                        }
                     }
                 }
             }
@@ -233,6 +260,10 @@ extension View {
             self.containerBackground(.background, for: .widget)
         }
     }
+}
+
+enum WidgetPoster {
+    static var image: NSImage? { NSImage(contentsOf: Prefs.containerURL.appendingPathComponent("header-poster.jpg")) }
 }
 
 struct EventLine: View {
@@ -246,7 +277,7 @@ struct EventLine: View {
                 .frame(width: 2.5, height: font)
             Text(event.title)
                 .font(.app(size: font, weight: event.holiday ? .semibold : .regular))
-                .foregroundStyle(event.holiday && !onTheme ? Color.red : (onTheme ? Color.white : Color.primary))
+                .foregroundStyle(event.holiday && !onTheme ? DayColors.holiday : (onTheme ? Color.white : Color.primary))
                 .lineLimit(1)
             Spacer(minLength: 0)
             if let t = event.time {

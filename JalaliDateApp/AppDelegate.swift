@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
+        // Lets the glass tint reach under the arrow too.
+        popover.hasFullSizeContent = true
 
         model.onCopy = { [weak self] in self?.flashCopied() }
         model.onOpenMain = { [weak self] in self?.showMainWindow() }
@@ -47,6 +49,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
 
         observeSettings()
         tick()
+        #if DEBUG
+        DistributedNotificationCenter.default().addObserver(forName: .init("blackswan.jdate.debug.toggle"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                // Background apps can't activate themselves, so a transient popover would close at once.
+                self?.popover.behavior = .applicationDefined
+                self?.togglePopover()
+            }
+        }
+        // Screenshot helper: {"glass": GlassStyle JSON, "widgetGlass": …, "theme": ThemeConfig JSON, "day": offset, "tab": raw}
+        DistributedNotificationCenter.default().addObserver(forName: .init("blackswan.jdate.debug.set"), object: nil, queue: .main) { [weak self] n in
+            let info = n.userInfo as? [String: String] ?? [:]
+            Task { @MainActor in
+                guard let self else { return }
+                let dec = JSONDecoder()
+                if let j = info["glass"]?.data(using: .utf8), let g = try? dec.decode(GlassStyle.self, from: j) { GlassSettings.shared.popover = g }
+                if let j = info["widgetGlass"]?.data(using: .utf8), let g = try? dec.decode(GlassStyle.self, from: j) { GlassSettings.shared.widget = g }
+                if let j = info["theme"]?.data(using: .utf8), let t = try? dec.decode(ThemeConfig.self, from: j) { self.settings.theme = t }
+                if let d = info["day"].flatMap(Int.init) {
+                    self.model.selectedDay = Calendar(identifier: .gregorian).date(byAdding: .day, value: d, to: self.model.now) ?? self.model.now
+                }
+                if let t = info["tab"].flatMap(MainTab.init(rawValue:)) { self.model.open(t) }
+                if let m = info["media"], let (name, kind) = try? await HeaderMedia.importFile(URL(fileURLWithPath: m)) {
+                    HeaderMedia.remove(self.settings.theme.mediaFile)
+                    self.settings.theme.mediaFile = name
+                    self.settings.theme.mediaKind = kind
+                    self.settings.theme.mode = .media
+                }
+            }
+        }
+        #endif
 
         clockTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -76,6 +108,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     }
 
     private func observeSettings() {
+        GlassSettings.shared.$popover.dropFirst().receive(on: RunLoop.main).sink { [weak self] g in
+            self?.applyPopoverGlass(g)
+        }.store(in: &bag)
+        GlassSettings.shared.$widget.dropFirst().debounce(for: .seconds(0.5), scheduler: RunLoop.main).sink { _ in
+            WidgetCenter.shared.reloadAllTimelines()
+        }.store(in: &bag)
+        settings.$theme.dropFirst().debounce(for: .seconds(0.8), scheduler: RunLoop.main).sink { _ in
+            WidgetCenter.shared.reloadAllTimelines()
+        }.store(in: &bag)
         FontSettings.shared.objectWillChange.debounce(for: .seconds(0.3), scheduler: RunLoop.main).sink { [weak self] _ in
             self?.updateIcon(force: true)
             WidgetCenter.shared.reloadAllTimelines()
@@ -209,7 +250,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
 
     func popoverWillShow(_ notification: Notification) {
         model.popoverVisible = true
+        applyPopoverGlass(GlassSettings.shared.popover)
         Task { await refreshData() }   // only fetches cities older than 30 min
+    }
+
+    func popoverDidShow(_ notification: Notification) {
+        applyPopoverGlass(GlassSettings.shared.popover)
+    }
+
+    /// Terminal-style background: the popover's own blur view fades out as the blur goes down,
+    /// so the desktop behind shows through sharper. The tint itself is drawn by PopoverView.
+    private func applyPopoverGlass(_ glass: GlassStyle) {
+        guard let content = popover.contentViewController?.view, let window = content.window,
+              let root = window.contentView?.superview ?? window.contentView else { return }
+        let alpha = glass.enabled ? CGFloat(max(0, min(1, glass.blur))) : 1
+        // macOS 26+ draws the popover with a glass view next to the content; older systems with an
+        // NSVisualEffectView. Never fade a view that holds the content, or the content fades too.
+        func walk(_ v: NSView) {
+            if v === content { return }
+            let isBackdrop = v is NSVisualEffectView || NSStringFromClass(type(of: v)).contains("Glass")
+            if isBackdrop {
+                if content.isDescendant(of: v) { v.alphaValue = 1 } else { v.alphaValue = alpha; return }
+            }
+            v.subviews.forEach(walk)
+        }
+        walk(root)
     }
 
     func popoverDidClose(_ notification: Notification) {

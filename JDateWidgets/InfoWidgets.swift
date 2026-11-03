@@ -108,7 +108,7 @@ struct ClockWidgetView: View {
                 }
             }
         }
-        .widgetBackground(theme)
+        .widgetBackground(theme, glass: entry.config.style.glass)
     }
 
     private func tile(_ c: CityEntity, theme: ResolvedTheme?) -> some View {
@@ -209,7 +209,7 @@ struct UpcomingWidgetView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetBackground(theme)
+        .widgetBackground(theme, glass: entry.config.style.glass)
     }
 
     private func flatten(_ items: [(Date, [WidgetEvent])]) -> [(Date, WidgetEvent)] {
@@ -265,7 +265,8 @@ struct WeatherWidgetView: View {
         let cache = entry.cache
         let city = entry.config.city.flatMap { e in cache.weatherCities.first { $0.id.uuidString == e.id } } ?? cache.weatherCities.first
         let snap = city.flatMap { cache.weather[$0.id.uuidString] }
-        let theme: ResolvedTheme? = entry.config.style == .weather
+        let theme: ResolvedTheme? = entry.config.style.glass != nil ? nil
+            : entry.config.style == .weather
             ? (snap.map(ThemeResolver.weatherTheme) ?? ThemeResolver.season(entry.date))
             : entry.config.style.theme(entry.date)
         let f = { (c: Double) in cache.unit.format(c) }
@@ -327,7 +328,7 @@ struct WeatherWidgetView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .widgetBackground(theme)
+        .widgetBackground(theme, glass: entry.config.style.glass)
     }
 
     private func hour(_ d: Date, _ c: City) -> String {
@@ -393,7 +394,7 @@ struct CountdownWidgetView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetBackground(theme)
+        .widgetBackground(theme, glass: c.style.glass)
     }
 
     private func nextDate(kind: CalendarKind, month: Int, day: Int, year: Int?) -> Date? {

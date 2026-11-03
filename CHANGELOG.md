@@ -2,6 +2,17 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.1 — 2026-11-03 · 1405-08-12
+- Click a day in the calendar and the header shows that day; click the header to jump back to today. The events panel no longer repeats the date
+- Animated headers: Aurora, Liquid mesh, Waves, Lava lamp, Starfield, Girih (Persian tiles) and Ripples, each with your own three colors, speed and intensity
+- Photo or video header: pick any photo or a short clip. Videos loop muted while the popover is open; widgets show a still frame
+- Popover background like Terminal: your own color with opacity and blur, from see-through to frosted, with light or dark text and four quick presets
+- Glass desktop widgets: color, opacity and blur for all jDate widgets at once, or per widget with the new Glass style
+- Theme picker redesigned as tiles, with a live preview of every animated style
+- Occasion themes that switch on by themselves: Nowruz, Chaharshanbe Suri, Sizdah Bedar, Yalda, Ramadan, Eid al-Fitr, Eid al-Adha, Muharram, Christmas, New Year's Eve, 4th of July, Halloween and Valentine's Day. Turn each one on or off, or pick one to keep
+- Six new animated styles: Fireworks, Crescent & lanterns, Snow & lights, Spring blossoms, Bonfire sparks and Floating hearts
+- Your own colors for holidays and weekends, and pick which days are the weekend (Friday, Thursday and Friday, Saturday and Sunday…), in the popover and the widgets
+
 ## v8.0 — 2026-11-02 · 1405-08-11
 - Desktop & Notification Center widgets: Today, Month, World Clock, Upcoming, Weather and Countdown — each configurable (calendar, digits, style, cities…)
 - Click a day in the popover calendar to see its holidays, occasions, birthdays and calendar events right below it
