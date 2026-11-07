@@ -4,7 +4,7 @@ struct AboutView: View {
     @ObservedObject var model: AppModel
 
     static let repoURL = URL(string: "https://github.com/blackswandevcom/jalaliDate-macOS")!
-    static let siteURL = URL(string: "https://blackswandevcom.github.io/jalaliDate-macOS/")!
+    static let siteURL = URL(string: "https://amirhp.com/open-source/jdate/")!
 
     var body: some View {
         let latest = Changelog.releases.first
