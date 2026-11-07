@@ -92,7 +92,7 @@ final class AppModel: ObservableObject {
     }
 
     static var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.3"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.4"
     }
 
     static var buildNumber: String {

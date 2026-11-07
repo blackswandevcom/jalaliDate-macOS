@@ -2,6 +2,9 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.4 — 2026-11-07 · 1405-08-16
+- About page: a link to jDate's source code on GitHub and a Share jDate button that sends the download page through Messages, Mail, AirDrop or any other share option
+
 ## v8.3 — 2026-11-03 · 1405-08-12
 - The popover opens on top of full-screen apps (Firefox, Safari, videos) in their own Space, instead of only showing after you leave full screen
 

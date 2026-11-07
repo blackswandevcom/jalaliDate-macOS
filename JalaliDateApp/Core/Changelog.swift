@@ -12,6 +12,9 @@ struct Release: Identifiable {
 /// Keep in sync with CHANGELOG.md in the repo root. Newest first.
 enum Changelog {
     static let releases: [Release] = [
+        Release(version: "8.4", date: "2026-11-07", notes: [
+            "About page: a link to jDate's source code on GitHub and a Share jDate button that sends the download page through Messages, Mail, AirDrop or any other share option",
+        ]),
         Release(version: "8.3", date: "2026-11-03", notes: [
             "The popover opens on top of full-screen apps (Firefox, Safari, videos) in their own Space, instead of only showing after you leave full screen",
         ]),

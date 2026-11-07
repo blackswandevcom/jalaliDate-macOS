@@ -3,6 +3,9 @@ import SwiftUI
 struct AboutView: View {
     @ObservedObject var model: AppModel
 
+    static let repoURL = URL(string: "https://github.com/blackswandevcom/jalaliDate-macOS")!
+    static let siteURL = URL(string: "https://blackswandevcom.github.io/jalaliDate-macOS/")!
+
     var body: some View {
         let latest = Changelog.releases.first
         let releaseDate = latest.flatMap { CalendarService.fromISO($0.date) }
@@ -38,6 +41,18 @@ struct AboutView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.orange)
                 .controlSize(.large)
+
+                HStack(spacing: 10) {
+                    Link(destination: Self.repoURL) {
+                        Label("Source on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    ShareLink(item: Self.siteURL,
+                              subject: Text("jDate: Jalali calendar for the Mac menubar"),
+                              message: Text("jDate puts the Jalali, Gregorian and Hijri dates in your Mac menubar, with Iranian holidays, birthdays, weather and widgets. Free and open source.")) {
+                        Label("Share jDate", systemImage: "square.and.arrow.up")
+                    }
+                }
+                .buttonStyle(.bordered)
 
                 Divider().frame(maxWidth: 320)
 
