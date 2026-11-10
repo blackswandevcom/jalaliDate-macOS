@@ -17,6 +17,7 @@ enum Prefs {
     static let themeKey = "ThemeConfig"
     static let layoutKey = "PopoverLayout"
     static let generalKey = "GeneralSettings"
+    static let copySettingsKey = "CopySettings"
     static let eventSettingsKey = "EventSettings"
     static let birthdaysKey = "Birthdays"
     static let birthdaySettingsKey = "BirthdaySettings"

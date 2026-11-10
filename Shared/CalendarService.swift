@@ -47,15 +47,6 @@ enum CalendarKind: String, CaseIterable, Identifiable, Codable, Hashable {
         }
     }
 
-    /// ⌘-shortcut used in the popover to copy today's date (kept from v6).
-    var copyShortcut: KeyEquivalent {
-        switch self {
-        case .jalali: return "c"
-        case .gregorian: return "x"
-        case .islamic: return "a"
-        }
-    }
-
     var monthNames: [String] {
         switch self {
         case .gregorian:

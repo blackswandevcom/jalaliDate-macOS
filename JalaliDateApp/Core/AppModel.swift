@@ -5,7 +5,7 @@ enum MainTab: String, CaseIterable, Identifiable, Hashable {
     case converter, difference, months
     case events, birthdays, weather
     case layout, theme, fonts, icon, desktopWidgets
-    case general, about, changelog
+    case general, shortcuts, about, changelog
 
     var id: String { rawValue }
 
@@ -23,6 +23,7 @@ enum MainTab: String, CaseIterable, Identifiable, Hashable {
         case .icon: return "Menubar Icon"
         case .desktopWidgets: return "Desktop Widgets"
         case .general: return "General"
+        case .shortcuts: return "Copy & Shortcuts"
         case .about: return "About"
         case .changelog: return "Changelog"
         }
@@ -42,6 +43,7 @@ enum MainTab: String, CaseIterable, Identifiable, Hashable {
         case .icon: return "menubar.rectangle"
         case .desktopWidgets: return "rectangle.3.group"
         case .general: return "gearshape"
+        case .shortcuts: return "keyboard"
         case .about: return "info.circle"
         case .changelog: return "list.bullet.rectangle"
         }
@@ -51,7 +53,7 @@ enum MainTab: String, CaseIterable, Identifiable, Hashable {
         ("Tools", [.converter, .difference, .months]),
         ("Content", [.events, .birthdays, .weather]),
         ("Customize", [.layout, .theme, .fonts, .icon, .desktopWidgets]),
-        ("App", [.general, .about, .changelog]),
+        ("App", [.general, .shortcuts, .about, .changelog]),
     ]
 }
 
@@ -85,14 +87,18 @@ final class AppModel: ObservableObject {
     var onCopy: (() -> Void)?
     var onOpenMain: (() -> Void)?
 
+    /// The running app's model, for App Intents (Spotlight / Shortcuts).
+    static weak var current: AppModel?
+
     init() {
         birthdays = BirthdayStore()
         events = EventStore(birthdays: birthdays)
         syncWeatherCities()
+        AppModel.current = self
     }
 
     static var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.4"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "8.5"
     }
 
     static var buildNumber: String {
@@ -120,6 +126,11 @@ final class AppModel: ObservableObject {
 
     func copyDate(_ date: Date, _ kind: CalendarKind, key: String) {
         copy(settings.general.copyFormat.string(date, kind), key: key)
+    }
+
+    /// Runs a copy action (date tile, popover ⌘-key, global shortcut, Spotlight).
+    func perform(_ action: CopyAction, date: Date) {
+        copy(action.text(for: date, format: settings.general.copyFormat), key: action.copiedKey)
     }
 
     /// `2026-11-02 | 1405-08-11` — handy for release notes.

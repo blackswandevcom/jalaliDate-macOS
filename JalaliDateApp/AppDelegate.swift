@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
 
         Hotkey.shared.action = { [weak self] in self?.togglePopover() }
         Hotkey.shared.register(settings.general)
+        registerCopyHotkeys(settings.copy)
 
         observeSettings()
         tick()
@@ -76,6 +77,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
                 if let f = info["footer"] { self.settings.layout.showFooter = f == "1" }
                 if let m = info["move"]?.split(separator: ",").compactMap({ Double($0) }), m.count == 2,
                    let w = self.popover.contentViewController?.view.window { w.setFrameOrigin(NSPoint(x: m[0], y: m[1])) }
+                if let m = info["rclick"]?.split(separator: ",").compactMap({ Double($0) }), m.count == 2,
+                   let w = self.popover.contentViewController?.view.window,
+                   let e = NSEvent.mouseEvent(with: .rightMouseDown, location: NSPoint(x: m[0], y: m[1]), modifierFlags: [],
+                                              timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: w.windowNumber,
+                                              context: nil, eventNumber: 0, clickCount: 1, pressure: 1) {
+                    NSApp.postEvent(e, atStart: false)
+                }
+                if let j = info["copy"]?.data(using: .utf8), let c = try? dec.decode(CopySettings.self, from: j) { self.settings.copy = c }
+                if info["fakeMeeting"] == "1" {
+                    self.model.events.debugExtra = [
+                        DayEvent(id: "dbg-1", title: "Weekly sync", subtitle: "Work", kind: .calendar, colorHex: "#3B82F6",
+                                 time: "10:30", sort: 3, meetingURL: URL(string: "https://meet.google.com/abc-defg-hij")),
+                        DayEvent(id: "dbg-2", title: "Lunch with Sara", subtitle: "Home", kind: .calendar, colorHex: "#10B981",
+                                 time: "13:00", sort: 3),
+                    ]
+                }
                 if let m = info["media"], let (name, kind) = try? await HeaderMedia.importFile(URL(fileURLWithPath: m)) {
                     HeaderMedia.remove(self.settings.theme.mediaFile)
                     self.settings.theme.mediaFile = name
@@ -134,6 +151,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
             Hotkey.shared.register(g)
             self?.model.events.invalidate()
         }.store(in: &bag)
+        settings.$copy.dropFirst().receive(on: RunLoop.main).sink { [weak self] c in
+            self?.registerCopyHotkeys(c)
+            JDateShortcuts.updateAppShortcutParameters()
+        }.store(in: &bag)
         settings.$layout.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
             guard let self else { return }
             let before = Set(model.weather.allCities.map(\.id))
@@ -153,6 +174,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
             guard let self else { return }
             Task { await Notifier.reschedule(birthdays: self.model.birthdays, events: self.model.events) }
         }.store(in: &bag)
+    }
+
+    /// System-wide copy shortcuts copy today's date.
+    private func registerCopyHotkeys(_ c: CopySettings) {
+        let list = c.actions.filter { $0.globalEnabled && $0.global.isValid }.map { a in
+            (id: a.id, combo: a.global, run: { [weak self] () -> Void in
+                guard let self, let current = self.settings.copy.actions.first(where: { $0.id == a.id }) else { return }
+                self.model.perform(current, date: Date())
+            })
+        }
+        Hotkey.shared.registerCopy(list)
     }
 
     // MARK: Refresh

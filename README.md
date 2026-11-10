@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/blackswandevcom/jalaliDate-macOS/releases">
-    <img src="docs/download-button.svg" width="420" alt="Download jDate 8.4 for macOS">
+    <img src="docs/download-button.svg" width="420" alt="Download jDate 8.5 for macOS">
   </a>
 </p>
 
@@ -45,6 +45,9 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 - **Day events** — click a day to see its holidays, occasions, birthdays and calendar events.
 - **Iranian public calendar** built in — solar and lunar holidays, Yalda, Chaharshanbe Suri and more, no internet needed.
 - **Your calendars** — Google, iCloud and others through macOS Calendar, plus public ICS subscriptions.
+- **Meeting links** — events with a Google Meet, Zoom, Teams, Webex, FaceTime or Skyroom link get a camera; click the event to join.
+- **Copy shortcuts** — your own ⌘ keys and custom copy formats, shown on the date tiles, plus global shortcuts that copy today's date from any app.
+- **Spotlight actions** — type “Convert 1405/02/24 to Gregorian”, copy a date, or count the days until a date right from Spotlight or the Shortcuts app.
 - **Birthday reminders** from Contacts or your own list, in any of the three calendars, with a year calendar and a timeline of the next twelve months.
 - **Weather** with a 5–7 day forecast — Open-Meteo, MET Norway, wttr.in, OpenWeatherMap or WeatherAPI.com.
 - **World clocks**, countdowns and an upcoming-events list as popover widgets in full, half or one-third width.
@@ -105,7 +108,7 @@ Requires macOS 15 (Sequoia) or later. Upgrading from an older version: quit it, 
 
 ## What's new
 
-See the **[changelog](CHANGELOG.md)**. Version 8.4 adds a GitHub link and a Share button to the About page. Version 8.3 opens the popover on top of full-screen apps. Version 8.2 makes the popover real Liquid Glass with a Terminal-style blur and a
+See the **[changelog](CHANGELOG.md)**. Version 8.5 adds meeting links on calendar events, Spotlight actions (convert a date, copy a date, days until a date), a Copy & Shortcuts page with custom copy formats and global copy shortcuts, and right-click on the header to open the converter. Version 8.4 adds a GitHub link and a Share button to the About page. Version 8.3 opens the popover on top of full-screen apps. Version 8.2 makes the popover real Liquid Glass with a Terminal-style blur and a
 Terminal preset, adds a birthday year calendar and timeline, lets you choose each line of the header (size and color too) and
 show the picked day's events in it, makes the date tiles copy the day you pick, adds one-line tiles and lets you hide the
 button bar. Version 8.1 added occasion themes (Nowruz, Ramadan, Christmas, 4th of July and more),

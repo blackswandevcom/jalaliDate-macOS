@@ -194,11 +194,14 @@ struct SharedCache: Codable {
 enum DateTokens {
     static let help: [(String, String)] = [
         ("{jd}", "Jalali day"), ("{jdd}", "Jalali day, 2 digits"), ("{jm}", "Jalali month number"),
+        ("{jmm}", "Jalali month, 2 digits"),
         ("{jmn}", "Jalali month name"), ("{jy}", "Jalali year"), ("{wd}", "Weekday (Persian)"),
         ("{wde}", "Weekday (English)"), ("{wds}", "Weekday short (English)"),
-        ("{gd}", "Gregorian day"), ("{gm}", "Gregorian month number"), ("{gmn}", "Gregorian month"),
+        ("{gd}", "Gregorian day"), ("{gdd}", "Gregorian day, 2 digits"), ("{gm}", "Gregorian month number"),
+        ("{gmm}", "Gregorian month, 2 digits"), ("{gmn}", "Gregorian month"),
         ("{gms}", "Gregorian month short"), ("{gy}", "Gregorian year"),
-        ("{hd}", "Hijri day"), ("{hm}", "Hijri month number"), ("{hmn}", "Hijri month name"), ("{hy}", "Hijri year"),
+        ("{hd}", "Hijri day"), ("{hdd}", "Hijri day, 2 digits"), ("{hm}", "Hijri month number"),
+        ("{hmm}", "Hijri month, 2 digits"), ("{hmn}", "Hijri month name"), ("{hy}", "Hijri year"),
         ("{time}", "Time 24h"), ("{time12}", "Time 12h"),
     ]
 
@@ -212,14 +215,16 @@ enum DateTokens {
         func time(_ f: String) -> String { tf.dateFormat = f; return tf.string(from: date) }
 
         let values: [String: String] = [
-            "{jd}": "\(j.day)", "{jdd}": String(format: "%02d", j.day), "{jm}": "\(j.month)",
+            "{jd}": "\(j.day)", "{jdd}": String(format: "%02d", j.day), "{jm}": "\(j.month)", "{jmm}": String(format: "%02d", j.month),
             "{jmn}": CalendarKind.jalali.monthNames[j.month - 1], "{jy}": "\(j.year)",
             "{wd}": CalendarService.weekday(date, .jalali),
             "{wde}": CalendarService.weekday(date, .gregorian),
             "{wds}": CalendarService.format(date, .gregorian, "EEE", locale: en),
-            "{gd}": "\(g.day)", "{gm}": "\(g.month)", "{gmn}": CalendarKind.gregorian.monthNames[g.month - 1],
+            "{gd}": "\(g.day)", "{gdd}": String(format: "%02d", g.day), "{gm}": "\(g.month)",
+            "{gmm}": String(format: "%02d", g.month), "{gmn}": CalendarKind.gregorian.monthNames[g.month - 1],
             "{gms}": CalendarService.format(date, .gregorian, "MMM", locale: en), "{gy}": "\(g.year)",
-            "{hd}": "\(h.day)", "{hm}": "\(h.month)", "{hmn}": CalendarKind.islamic.monthNames[h.month - 1], "{hy}": "\(h.year)",
+            "{hd}": "\(h.day)", "{hdd}": String(format: "%02d", h.day), "{hm}": "\(h.month)",
+            "{hmm}": String(format: "%02d", h.month), "{hmn}": CalendarKind.islamic.monthNames[h.month - 1], "{hy}": "\(h.year)",
             "{time}": time("HH:mm"), "{time12}": time("h:mm a"),
         ]
         var out = template

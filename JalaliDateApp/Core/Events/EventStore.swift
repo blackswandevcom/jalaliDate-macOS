@@ -12,6 +12,8 @@ struct DayEvent: Identifiable, Hashable {
     var colorHex: String
     var time: String?
     var sort: Int = 0
+    /// Video-call link (Google Meet, Zoom, Teams…) found in a calendar event.
+    var meetingURL: URL? = nil
 
     var color: Color { Color(hex: colorHex) }
 
@@ -49,6 +51,14 @@ struct EventSettings: Codable, Equatable {
     /// nil = all calendars.
     var enabledCalendarIDs: [String]?
     var feeds: [ICSFeed] = [.googleIran]
+    /// Stored inverted so settings saved by older versions keep it on.
+    var hideMeetingLinks: Bool? = nil
+
+    /// Camera icon next to events with a Google Meet / Zoom / Teams link; clicking the event joins.
+    var showMeetingLinks: Bool {
+        get { hideMeetingLinks != true }
+        set { hideMeetingLinks = newValue ? nil : true }
+    }
 }
 
 @MainActor
@@ -78,6 +88,11 @@ final class EventStore: ObservableObject {
             Task { @MainActor in self?.invalidate() }
         }
     }
+
+    #if DEBUG
+    /// Screenshot helper: extra events shown on today.
+    var debugExtra: [DayEvent] = [] { didSet { invalidate() } }
+    #endif
 
     func invalidate() {
         systemCache.removeAll()
@@ -120,6 +135,9 @@ final class EventStore: ObservableObject {
         if settings.showSystemCalendars && hasCalendarAccess {
             out += systemEvents(on: date)
         }
+        #if DEBUG
+        if Calendar(identifier: .gregorian).isDateInToday(date) { out += debugExtra }
+        #endif
         return out.sorted { ($0.sort, $0.time ?? "", $0.title) < ($1.sort, $1.time ?? "", $1.title) }
     }
 
@@ -183,6 +201,7 @@ final class EventStore: ObservableObject {
         let cals = allCalendars.filter(isCalendarEnabled)
         guard !cals.isEmpty else { return [:] }
         let predicate = ekStore.predicateForEvents(withStart: start, end: end, calendars: cals)
+        let meetings = settings.showMeetingLinks
         let tf = DateFormatter()
         tf.dateFormat = AppSettings.shared.general.clock24h ? "HH:mm" : "h:mm a"
         var out: [String: [DayEvent]] = [:]
@@ -191,6 +210,7 @@ final class EventStore: ObservableObject {
             var day = g.startOfDay(for: ev.startDate)
             let last = ev.isAllDay ? g.date(byAdding: .second, value: -1, to: ev.endDate) ?? ev.endDate : ev.endDate
             var guardCount = 0
+            let meeting = meetings ? MeetingLink.find(in: ev) : nil
             while day <= (last ?? day) && guardCount < 40 {
                 if day >= start && day < end {
                     let iso = CalendarService.iso(day, .gregorian)
@@ -200,7 +220,8 @@ final class EventStore: ObservableObject {
                         title: ev.title ?? "(No title)",
                         subtitle: ev.calendar.title,
                         kind: .calendar, colorHex: color,
-                        time: ev.isAllDay ? nil : tf.string(from: ev.startDate), sort: 3))
+                        time: ev.isAllDay ? nil : tf.string(from: ev.startDate), sort: 3,
+                        meetingURL: meeting))
                 }
                 guard let next = g.date(byAdding: .day, value: 1, to: day) else { break }
                 day = next

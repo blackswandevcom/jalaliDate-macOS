@@ -876,35 +876,12 @@ struct GeneralView: View {
             }
 
             Section {
-                Picker("Copied date format", selection: $settings.general.copyFormat) {
-                    ForEach(CopyFormat.allCases) { Text($0.title).tag($0) }
+                LabeledContent("Copy formats and shortcuts") {
+                    Button("Open Copy & Shortcuts") { model.tab = .shortcuts }
                 }
-                LabeledContent("Example", value: settings.general.copyFormat.string(model.now, .jalali))
-            } header: {
-                Text("Copy")
             } footer: {
-                Text("Used when you click a date in the popover (⌘C / ⌘X / ⌘A) or in the converter.").font(.app(.caption)).foregroundStyle(.secondary)
-            }
-
-            Section {
-                Toggle("Open jDate with a keyboard shortcut", isOn: $settings.general.hotkeyEnabled)
-                if settings.general.hotkeyEnabled {
-                    HStack(spacing: 12) {
-                        Toggle("⌃ Control", isOn: $settings.general.hotkeyControl)
-                        Toggle("⌥ Option", isOn: $settings.general.hotkeyOption)
-                        Toggle("⌘ Command", isOn: $settings.general.hotkeyCommand)
-                        Toggle("⇧ Shift", isOn: $settings.general.hotkeyShift)
-                    }
-                    .toggleStyle(.checkbox)
-                    Picker("Key", selection: $settings.general.hotkeyKey) {
-                        ForEach(Hotkey.keys, id: \.self) { Text($0).tag($0) }
-                    }
-                    LabeledContent("Shortcut", value: settings.general.hotkeyDescription)
-                }
-            } header: {
-                Text("Global shortcut")
-            } footer: {
-                Text("Works from any app. Pick at least one modifier.").font(.app(.caption)).foregroundStyle(.secondary)
+                Text("The copied date format, the ⌘ keys in the popover, global copy shortcuts and the Open jDate shortcut moved to their own page.")
+                    .font(.app(.caption)).foregroundStyle(.secondary)
             }
 
             Section {

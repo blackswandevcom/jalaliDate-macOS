@@ -204,8 +204,6 @@ struct DayEventsPanel: View {
                     }
                 }
                 Spacer(minLength: 0)
-                Button { model.openConverter(at: day) } label: { Image(systemName: "arrow.left.arrow.right").font(.app(size: 11)) }
-                    .buttonStyle(.borderless).foregroundStyle(.secondary).help("Open this day in the converter")
             }
         }
         .padding(10)
@@ -217,8 +215,20 @@ struct DayEventsPanel: View {
 
 struct EventRow: View {
     let event: DayEvent
+    @State private var hovering = false
 
     var body: some View {
+        if let url = event.meetingURL {
+            Button { NSWorkspace.shared.open(url) } label: { row(url) }
+                .buttonStyle(.plain)
+                .onHover { hovering = $0 }
+                .help("Join on \(MeetingLink.name(of: url))")
+        } else {
+            row(nil)
+        }
+    }
+
+    private func row(_ meeting: URL?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             RoundedRectangle(cornerRadius: 1.5).fill(event.color).frame(width: 3, height: 12)
             VStack(alignment: .leading, spacing: 0) {
@@ -231,7 +241,24 @@ struct EventRow: View {
             }
             Spacer(minLength: 0)
             if let t = event.time { Text(t).font(.app(size: 10).monospacedDigit()).foregroundStyle(.secondary) }
+            if meeting != nil { MeetingIcon(active: hovering) }
         }
+        .contentShape(Rectangle())
+    }
+}
+
+/// Small camera shown next to events that have a video-call link.
+struct MeetingIcon: View {
+    var active = false
+    var color: Color? = nil
+
+    var body: some View {
+        Image(systemName: "video.fill")
+            .font(.app(size: 9, weight: .semibold))
+            .foregroundStyle(color ?? (active ? Color.white : Color.accentColor))
+            .padding(.horizontal, 4).padding(.vertical, 2)
+            .background(Capsule().fill(color == nil ? Color.accentColor.opacity(active ? 1 : 0.15) : Color.white.opacity(active ? 0.3 : 0.18)))
+            .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 3 }
     }
 }
 

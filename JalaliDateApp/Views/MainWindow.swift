@@ -30,6 +30,7 @@ struct MainWindowView: View {
                 case .icon: IconDesignerView(model: model, settings: model.settings)
                 case .desktopWidgets: DesktopWidgetsView()
                 case .general: GeneralView(model: model, settings: model.settings)
+                case .shortcuts: ShortcutsSettingsView(model: model, settings: model.settings)
                 case .about: AboutView(model: model)
                 case .changelog: ChangelogView()
                 }

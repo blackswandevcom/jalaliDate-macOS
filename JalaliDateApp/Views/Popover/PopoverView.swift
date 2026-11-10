@@ -30,14 +30,18 @@ struct PopoverView: View {
                         section(s, theme: theme)
                     }
                 }
+                if settings.copy.showHints {
+                    ShortcutHintBar(model: model, settings: settings)
+                }
                 if layout.showFooter {
                     Divider()
                     PopoverFooter(model: model)
                 }
             }
             .padding(14)
-            // With the button bar hidden, its shortcuts (⌘E, ⌘D, ⌘,, ⌘Q) keep working.
+            // With the button bar hidden, its shortcuts (⌘E, ⌘,, ⌘Q) keep working.
             .background {
+                CopyShortcutKeys(model: model, copy: settings.copy)
                 if !layout.showFooter {
                     PopoverFooter(model: model).opacity(0).frame(width: 0, height: 0).clipped().allowsHitTesting(false)
                 }
@@ -107,7 +111,9 @@ struct PopoverView: View {
             HeroView(date: model.selectedDay, now: model.now, theme: theme, weather: weather,
                      animated: settings.theme.animated && model.popoverVisible,
                      header: settings.layout.header,
-                     events: settings.layout.header.visible(.events) ? events.events(on: model.selectedDay) : []) { model.goToday() }
+                     events: settings.layout.header.visible(.events) ? events.events(on: model.selectedDay) : [],
+                     onToday: { model.goToday() },
+                     onRightClick: { model.openConverter(at: model.selectedDay) })
         case .widgets:
             if !settings.layout.widgets.isEmpty {
                 WidgetGrid(model: model, width: settings.layout.effectiveWidth - 28)
@@ -136,6 +142,8 @@ struct HeroView: View {
     /// The day's events, shown under the dates when the header is set to show them.
     var events: [DayEvent] = []
     var onToday: (() -> Void)? = nil
+    /// Right-click: open the converter on the shown day.
+    var onRightClick: (() -> Void)? = nil
     @State private var hovering = false
 
     private var isToday: Bool { Calendar(identifier: .gregorian).isDate(date, inSameDayAs: now) }
@@ -148,25 +156,39 @@ struct HeroView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    @ViewBuilder
+    private func headerEvent(_ e: DayEvent, size: CGFloat, custom: Bool) -> some View {
+        let row = HStack(spacing: 6) {
+            Capsule().fill(e.kind == .holiday || custom ? header.color(.events) : e.color)
+                .overlay(Capsule().strokeBorder(.white.opacity(0.6), lineWidth: 0.5))
+                .frame(width: 4, height: size + 1)
+            Text(e.title)
+                .font(.app(size: size, weight: e.kind == .holiday ? .semibold : .medium))
+                .foregroundStyle(header.color(.events))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            if let t = e.time {
+                Text(t).font(.app(size: max(8, size - 2)).monospacedDigit())
+                    .foregroundStyle(header.color(.events).opacity(0.8))
+            }
+            if e.meetingURL != nil { MeetingIcon(color: header.color(.events)) }
+        }
+        .contentShape(Rectangle())
+        if let url = e.meetingURL {
+            Button { NSWorkspace.shared.open(url) } label: { row }
+                .buttonStyle(.plain)
+                .help("Join on \(MeetingLink.name(of: url))")
+        } else {
+            row
+        }
+    }
+
     private func eventList(_ list: [DayEvent]) -> some View {
         let size = header.size(.events)
         let custom = header.style(.events).color != nil
         return VStack(alignment: .leading, spacing: 4) {
             ForEach(list.prefix(4)) { e in
-                HStack(spacing: 6) {
-                    Capsule().fill(e.kind == .holiday || custom ? header.color(.events) : e.color)
-                        .overlay(Capsule().strokeBorder(.white.opacity(0.6), lineWidth: 0.5))
-                        .frame(width: 4, height: size + 1)
-                    Text(e.title)
-                        .font(.app(size: size, weight: e.kind == .holiday ? .semibold : .medium))
-                        .foregroundStyle(header.color(.events))
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    if let t = e.time {
-                        Text(t).font(.app(size: max(8, size - 2)).monospacedDigit())
-                            .foregroundStyle(header.color(.events).opacity(0.8))
-                    }
-                }
+                headerEvent(e, size: size, custom: custom)
             }
             if list.count > 4 {
                 Text("و \(CalendarService.persianDigits(list.count - 4)) رویداد دیگر")
@@ -270,8 +292,9 @@ struct HeroView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .onTapGesture { withAnimation(.snappy) { onToday?() } }
+        .onRightClick(onRightClick)
         .onHover { hovering = $0 }
-        .help(isToday ? "Today" : "Click to go back to today")
+        .help((isToday ? "Today" : "Click to go back to today") + (onRightClick == nil ? "" : " · Right-click to open the date converter"))
         .animation(.snappy, value: date)
         .environment(\.layoutDirection, .leftToRight)
     }
@@ -350,8 +373,9 @@ struct PopoverFooter: View {
             FooterButton(symbol: MainTab.converter.symbol, help: "Date Converter (⌘E)") { model.open(.converter) }
                 .keyboardShortcut("e", modifiers: .command)
             FooterButton(symbol: MainTab.months.symbol, help: "Months table") { model.open(.months) }
-            FooterButton(symbol: "doc.on.clipboard", help: "Copy version dates (⌘D)") { model.copyVersionDates() }
-                .keyboardShortcut("d", modifiers: .command)
+            FooterButton(symbol: "doc.on.clipboard", help: "Copy version dates" + (model.settings.copy.actions.first { $0.kind == .versionDates }?.popoverHint.map { " (\($0))" } ?? "")) {
+                model.copyVersionDates()
+            }
                 .overlay(alignment: .topTrailing) {
                     if model.copiedKey == "version" {
                         Image(systemName: "checkmark.circle.fill").font(.app(size: 9)).foregroundStyle(.green)
@@ -387,5 +411,81 @@ struct FooterButton: View {
         .foregroundStyle(.secondary)
         .onHover { hovering = $0 }
         .help(help)
+    }
+}
+
+// MARK: - Copy shortcuts
+
+/// Invisible buttons that give every copy action its ⌘-key, whether or not its tile is shown.
+struct CopyShortcutKeys: View {
+    @ObservedObject var model: AppModel
+    let copy: CopySettings
+
+    var body: some View {
+        ZStack {
+            ForEach(copy.actions.filter { !$0.popoverKey.isEmpty && copy.popoverConflict($0) == nil }) { a in
+                Button("") { model.perform(a, date: model.selectedDay) }
+                    .keyboardShortcut(KeyEquivalent(Character(a.popoverKey.lowercased())), modifiers: .command)
+            }
+        }
+        .opacity(0).frame(width: 0, height: 0).clipped().allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A small row naming the copy shortcuts that aren't already printed on a date tile.
+struct ShortcutHintBar: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var settings: AppSettings
+
+    var body: some View {
+        let layout = settings.layout
+        let tiles: Set<CalendarKind> = layout.isVisible(.widgets)
+            ? Set(layout.widgets.compactMap { if case .date(let k) = $0.kind { return k } else { return nil } })
+            : []
+        let list = settings.copy.actions.filter { a in
+            a.popoverHint != nil && settings.copy.popoverConflict(a) == nil && !(a.calendar.map(tiles.contains) ?? false)
+        }
+        if !list.isEmpty {
+            ViewThatFits(in: .horizontal) {
+                row(list)
+                ScrollView(.horizontal, showsIndicators: false) { row(list) }
+            }
+        }
+    }
+
+    private func row(_ list: [CopyAction]) -> some View {
+        HStack(spacing: 6) {
+            ForEach(list) { a in
+                Button { model.perform(a, date: model.selectedDay) } label: {
+                    HStack(spacing: 6) {
+                        KeyCap(text: a.popoverHint ?? "")
+                        Text(model.copiedKey == a.copiedKey ? "Copied" : a.name)
+                            .font(.app(size: 12, weight: .medium)).lineLimit(1)
+                            .foregroundStyle(model.copiedKey == a.copiedKey ? AnyShapeStyle(.green) : AnyShapeStyle(.primary.opacity(0.85)))
+                    }
+                    .padding(.leading, 4).padding(.trailing, 10).padding(.vertical, 4)
+                    .background(Capsule().fill(Color.primary.opacity(0.08)))
+                }
+                .buttonStyle(.plain)
+                .help("Copy: \(a.text(for: model.selectedDay, format: settings.general.copyFormat))")
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// A shortcut like ⌘C drawn as a small key.
+struct KeyCap: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .foregroundStyle(.primary.opacity(0.9))
+            .padding(.horizontal, 5).padding(.vertical, 1.5)
+            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.primary.opacity(0.12)))
+            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Color.primary.opacity(0.18), lineWidth: 0.5))
+            .fixedSize()
     }
 }

@@ -2,6 +2,14 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.5 — 2026-11-10 · 1405-08-19
+- Meeting links: calendar events with a Google Meet, Zoom, Teams, Webex, FaceTime or Skyroom link get a small camera, and clicking the event joins the call (on by default; Events & Calendars › Meeting links)
+- Right-click the header to open the date converter on the day it shows
+- New Copy & Shortcuts page: shortcut hints on the date tiles (⌘C, ⌘X…) and a small row for the other copy shortcuts, your own ⌘ keys for each, and custom copy formats built from date tokens
+- Global copy shortcuts: give any date or custom format a system-wide shortcut that copies today's date from any app
+- Spotlight and Shortcuts actions: Convert Date, Copy Date, Copy Date in Format, Days Until Date and Open in Date Converter. Type a date like 1405/08/19, 2026-11-10, 19 آبان, 10 Nov, tomorrow or +10
+- New date tokens with two digits: {jmm}, {gdd}, {gmm}, {hdd}, {hmm}
+
 ## v8.4 — 2026-11-07 · 1405-08-16
 - About page: a link to jDate's source code on GitHub and a Share jDate button that sends the download page through Messages, Mail, AirDrop or any other share option
 

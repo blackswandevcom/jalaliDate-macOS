@@ -367,6 +367,7 @@ final class AppSettings: ObservableObject {
     @Published var theme: ThemeConfig { didSet { Prefs.save(theme, Prefs.themeKey); DayColors.update(theme) } }
     @Published var layout: PopoverLayout { didSet { Prefs.save(layout, Prefs.layoutKey) } }
     @Published var general: GeneralSettings { didSet { Prefs.save(general, Prefs.generalKey) } }
+    @Published var copy: CopySettings { didSet { Prefs.save(copy, Prefs.copySettingsKey) } }
 
     private init() {
         Prefs.migrate()
@@ -374,6 +375,9 @@ final class AppSettings: ObservableObject {
         theme = Prefs.load(ThemeConfig.self, Prefs.themeKey) ?? ThemeConfig()
         layout = Prefs.load(PopoverLayout.self, Prefs.layoutKey) ?? PopoverLayout()
         general = Prefs.load(GeneralSettings.self, Prefs.generalKey) ?? GeneralSettings()
+        var copy = Prefs.load(CopySettings.self, Prefs.copySettingsKey) ?? CopySettings()
+        copy.ensureBuiltIns()
+        self.copy = copy
         DayColors.update(theme)
         // Make sure sections added in later versions appear.
         for s in PopoverSection.allCases where !layout.sections.contains(where: { $0.section == s }) {

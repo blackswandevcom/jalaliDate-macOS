@@ -31,6 +31,13 @@ struct EventsSettingsView: View {
                         if on && !events.hasCalendarAccess { Task { await events.requestCalendarAccess() } }
                     }))
                 if events.settings.showSystemCalendars {
+                    Toggle(isOn: $events.settings.showMeetingLinks) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label("Meeting links", systemImage: "video.fill")
+                            Text("Events with a Google Meet, Zoom, Teams, Webex, FaceTime or Skyroom link get a small camera; click the event to join.")
+                                .font(.app(.caption)).foregroundStyle(.secondary)
+                        }
+                    }
                     if events.hasCalendarAccess {
                         let cals = events.allCalendars
                         if cals.isEmpty {

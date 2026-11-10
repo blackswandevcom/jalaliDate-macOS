@@ -93,6 +93,12 @@ struct DateWidget: View {
     var compact = false
 
     private var copied: Bool { model.copiedKey == "date-\(kind.rawValue)" }
+    private var action: CopyAction? { model.settings.copy.action(for: kind) }
+    /// "⌘C" when shortcut hints are on.
+    private var hint: String? {
+        guard model.settings.copy.showHints, let a = action, model.settings.copy.popoverConflict(a) == nil else { return nil }
+        return a.popoverHint
+    }
     /// The day picked in the calendar (today unless another day was clicked).
     private var day: Date { model.selectedDay }
 
@@ -115,14 +121,16 @@ struct DateWidget: View {
                     .font(.app(size: 10).monospacedDigit()).foregroundStyle(.secondary)
                     .lineLimit(1).minimumScaleFactor(0.8)
             }
-            if size == .full && !copied {
-                Text("⌘\(String(kind.copyShortcut.character).uppercased())").font(.app(size: 9)).foregroundStyle(.tertiary)
+            if !copied, let hint {
+                KeyCap(text: hint)
             }
         }
     }
 
     var body: some View {
-        Button { model.copyDate(day, kind, key: "date-\(kind.rawValue)") } label: {
+        Button {
+            if let action { model.perform(action, date: day) } else { model.copyDate(day, kind, key: "date-\(kind.rawValue)") }
+        } label: {
             Tile(compact: compact) {
                 if compact {
                     compactBody
@@ -136,8 +144,8 @@ struct DateWidget: View {
                         Spacer(minLength: 0)
                         if copied {
                             Label("Copied", systemImage: "checkmark.circle.fill").font(.app(.caption)).foregroundStyle(.green)
-                        } else {
-                            Text("⌘\(String(kind.copyShortcut.character).uppercased())").font(.app(.caption2)).foregroundStyle(.tertiary)
+                        } else if let hint {
+                            KeyCap(text: hint)
                         }
                     }
                 } else {
@@ -147,6 +155,11 @@ struct DateWidget: View {
                             Image(systemName: copied ? "checkmark.circle.fill" : kind.symbol)
                                 .foregroundStyle(copied ? .green : kind.tint)
                             Text(kind.shortTitle).font(.app(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            if !copied, let hint {
+                                Spacer(minLength: 2)
+                                KeyCap(text: hint)
+                            }
                         }
                         Text(kind == .gregorian ? "\(p.day) \(CalendarService.format(day, .gregorian, "MMM", locale: Locale(identifier: "en_US")))"
                                                 : CalendarService.persianDigits("\(p.day) \(kind.monthNames[p.month - 1])"))
@@ -158,7 +171,6 @@ struct DateWidget: View {
             }
         }
         .buttonStyle(.plain)
-        .keyboardShortcut(kind.copyShortcut, modifiers: .command)
         .help(model.isTodaySelected ? "Copy today's \(kind.title) date" : "Copy the \(kind.title) date of the selected day")
     }
 }
