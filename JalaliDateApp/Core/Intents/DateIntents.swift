@@ -299,22 +299,40 @@ struct DateSnippet: View {
     var highlight: CalendarKind? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(headline).font(.title3.weight(.semibold))
-                if !detail.isEmpty { Text(detail).font(.callout).foregroundStyle(.secondary) }
+        // Spotlight's result panel is narrow: one calendar per row, the long date on top and the
+        // numeric date under it, each on a single line, and the whole view as wide as the panel.
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(headline)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                if !detail.isEmpty {
+                    Text(detail).font(.callout).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             ForEach(IntentSupport.lines(date), id: \.0) { k, long, iso in
-                HStack(spacing: 8) {
-                    Image(systemName: k.symbol).foregroundStyle(k.tint)
-                    Text(long).font(.body).fontWeight(k == highlight ? .semibold : .regular)
-                    Spacer(minLength: 8)
-                    Text(iso).font(.system(.body, design: .monospaced))
-                        .foregroundStyle(k == highlight ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: k.symbol)
+                        .font(.title3)
+                        .foregroundStyle(k.tint)
+                        .frame(width: 22)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(long)
+                            .font(.body.weight(k == highlight ? .semibold : .regular))
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                        Text(iso)
+                            .font(.system(.callout, design: .monospaced))
+                            .foregroundStyle(k == highlight ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
                 }
             }
         }
-        .padding()
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

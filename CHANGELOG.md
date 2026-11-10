@@ -2,6 +2,9 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.5.1 — 2026-11-10 · 1405-08-19
+- Spotlight results fit the panel: each calendar shows its date on one line with the numeric date under it, instead of wrapping into broken lines
+
 ## v8.5 — 2026-11-10 · 1405-08-19
 - Meeting links: calendar events with a Google Meet, Zoom, Teams, Webex, FaceTime or Skyroom link get a small camera, and clicking the event joins the call (on by default; Events & Calendars › Meeting links)
 - Right-click the header to open the date converter on the day it shows
