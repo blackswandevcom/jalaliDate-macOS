@@ -2,6 +2,10 @@
 
 Newest first. Dates are Gregorian · Jalali. Keep in sync with `JalaliDateApp/Core/Changelog.swift`.
 
+## v8.5.2 — 2026-11-19 · 1405-08-28
+- Date Converter: a Copy this date card copies the version-dates line and each of your custom formats for the date on the page (add formats in Copy & Shortcuts)
+- Date Difference: the "Enter dates in" label stays on one line
+
 ## v8.5.1 — 2026-11-10 · 1405-08-19
 - Spotlight results fit the panel: each calendar shows its date on one line with the numeric date under it, instead of wrapping into broken lines
 

@@ -12,11 +12,16 @@ struct DateDifferenceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Picker("Enter dates in", selection: $kind) {
-                    ForEach(CalendarKind.allCases) { Text($0.title).tag($0) }
+                HStack(spacing: 10) {
+                    Text("Enter dates in")
+                        .fixedSize()
+                    Picker("Enter dates in", selection: $kind) {
+                        ForEach(CalendarKind.allCases) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 420)
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 420)
 
                 Card {
                     VStack(alignment: .leading, spacing: 10) {

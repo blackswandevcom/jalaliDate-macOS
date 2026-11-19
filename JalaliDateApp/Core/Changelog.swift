@@ -12,6 +12,10 @@ struct Release: Identifiable {
 /// Keep in sync with CHANGELOG.md in the repo root. Newest first.
 enum Changelog {
     static let releases: [Release] = [
+        Release(version: "8.5.2", date: "2026-11-19", notes: [
+            "Date Converter: a Copy this date card copies the version-dates line and each of your custom formats for the date on the page (add formats in Copy & Shortcuts)",
+            "Date Difference: the \"Enter dates in\" label stays on one line",
+        ]),
         Release(version: "8.5.1", date: "2026-11-10", notes: [
             "Spotlight results fit the panel: each calendar shows its date on one line with the numeric date under it, instead of wrapping into broken lines",
         ]),

@@ -14,6 +14,8 @@ struct ConverterView: View {
                     ConverterRow(kind: kind, date: $model.converterDate, model: model)
                 }
 
+                ConverterCopyCard(model: model, settings: model.settings, date: date)
+
                 HStack(spacing: 8) {
                     Button { shift(-1) } label: { Label("Previous day", systemImage: "chevron.left") }
                         .keyboardShortcut(.leftArrow, modifiers: .command)
@@ -140,5 +142,67 @@ private struct ConverterRow: View {
             Stepper("", value: Binding(get: { value }, set: { commit($0) }), in: range)
                 .labelsHidden()
         }
+    }
+}
+
+/// The other copy actions (version dates and the user's custom formats) for the converter's date.
+struct ConverterCopyCard: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var settings: AppSettings
+    let date: Date
+
+    private var actions: [CopyAction] {
+        settings.copy.actions.filter { $0.kind == .versionDates || $0.kind == .custom }
+    }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Copy this date").font(.app(size: 13, weight: .semibold))
+                    Spacer()
+                    Button("Add a format…") { model.open(.shortcuts) }
+                        .buttonStyle(.link)
+                        .font(.app(.caption))
+                }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(actions) { action in
+                        button(action)
+                    }
+                }
+            }
+        }
+    }
+
+    private func button(_ action: CopyAction) -> some View {
+        let key = "conv-\(action.copiedKey)"
+        let copied = model.copiedKey == key
+        let text = action.text(for: date, format: settings.general.copyFormat)
+        return Button {
+            model.copy(text, key: key)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: copied ? "checkmark" : action.symbol)
+                    .foregroundStyle(copied ? Color.green : Color.accentColor)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(action.name.isEmpty ? "Custom format" : action.name)
+                        .font(.app(size: 12, weight: .medium))
+                        .lineLimit(1)
+                    Text(text)
+                        .font(.app(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "doc.on.doc").foregroundStyle(.secondary).font(.app(size: 11))
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.05)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Copy “\(text)”")
     }
 }
